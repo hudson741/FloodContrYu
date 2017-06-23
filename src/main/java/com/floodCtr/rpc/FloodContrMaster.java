@@ -3,12 +3,8 @@ package com.floodCtr.rpc;
 import com.floodCtr.FloodContrHeartBeat;
 import com.floodCtr.FloodContrSubScheduler;
 import com.floodCtr.YarnClient;
-import com.floodCtr.job.FloodJob;
-import com.floodCtr.publish.FloodContrJobPubProxy;
-import com.floodCtr.publish.PRIORITY;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.transport.TTransportException;
@@ -18,9 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,15 +24,10 @@ import java.util.concurrent.TimeUnit;
 public abstract class FloodContrMaster extends ThriftServer{
 
     private static final Logger LOG = LoggerFactory.getLogger(FloodContrMaster.class);
+    private YarnClient yarnClient =  YarnClient.getInstance();
 
-    private int port;
-
-    private YarnClient yarnClient;
-
-    public FloodContrMaster(YarnClient yarnClient,TProcessor processor, int port) {
-        super(processor, port);
-        this.port = port;
-        this.yarnClient = yarnClient;
+    public FloodContrMaster(TProcessor processor,int port) {
+        super(processor,port);
     }
 
     public abstract void initExecute();
@@ -53,6 +41,7 @@ public abstract class FloodContrMaster extends ThriftServer{
             FloodContrHeartBeat floodContrHeartBeat = new FloodContrHeartBeat(yarnClient);
 
             FloodContrSubScheduler floodContrSubScheduler = new FloodContrSubScheduler(yarnClient);
+
 
             initExecute();
 

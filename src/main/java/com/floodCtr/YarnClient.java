@@ -31,14 +31,25 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
     private static final Logger LOG = LoggerFactory.getLogger(YarnClient.class);
 
     // 与nodemanager交互
-    private  NMClientImpl nmClient;
+    private NMClientImpl nmClient;
 
-    public YarnClient(YarnConfiguration yarnConf) {
+    private YarnClient(YarnConfiguration yarnConf) {
         nmClient = (NMClientImpl) NMClient.createNMClient();
         nmClient.init(yarnConf);
         nmClient.start();
         init(yarnConf);
         start();
+    }
+
+    static YarnClient yarnClient;
+
+    public static YarnClient getInstance(){
+        if(yarnClient!=null){
+            return yarnClient;
+        }
+
+        yarnClient = new YarnClient(new YarnConfiguration());
+        return yarnClient;
     }
 
 
@@ -50,7 +61,7 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
      * @param racks
      * @param priority
      */
-    public  void addContainerRequest(int memory, int cpu, String[] nodes, String[] racks, PRIORITY priority) {
+    public void addContainerRequest(int memory, int cpu, String[] nodes, String[] racks, PRIORITY priority) {
         Priority priority1 = Records.newRecord(Priority.class);
 
         priority1.setPriority(priority.getCode());
@@ -87,7 +98,7 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
      * 资源释放
      * @param containerId
      */
-    public  void releaseContainer(ContainerId containerId) {
+    public void releaseContainer(ContainerId containerId) {
         releaseAssignedContainer(containerId);
     }
 
@@ -98,7 +109,7 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
      * @param yarnCommond
      * @return
      */
-    public  int startDockerContainer(Container container, Map<String, LocalResource> localResource,
+    public int startDockerContainer(Container container, Map<String, LocalResource> localResource,
                                            String yarnCommond) {
         ContainerLaunchContext launchContext = ContainerLaunchContext.newInstance(localResource,
                                                                                   null,

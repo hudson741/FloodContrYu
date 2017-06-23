@@ -22,16 +22,16 @@ public class ThriftServer {
 
     private TServer server;
 
-    private TProcessor processor;
+    protected TProcessor processor;
 
-    private int port;
+    protected int port;
 
     public ThriftServer(TProcessor processor,int port){
         this.processor = processor;
         this.port = port;
     }
 
-    public void serve() throws TTransportException {
+    protected void serve() throws TTransportException {
         serverTransport = new TServerSocket(port);
 
         TBinaryProtocol.Factory protocolFactory = new TBinaryProtocol.Factory(true, true);

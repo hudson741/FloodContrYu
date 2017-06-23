@@ -13,12 +13,11 @@ import java.util.UUID;
  */
 public  class StormThriftServiceImpl implements StormThriftService.Iface {
 
-    private FloodContrJobPubProxy floodContrJobPubProxy;
-
     public StormThriftServiceImpl(FloodContrJobPubProxy floodContrJobPubProxy){
         this.floodContrJobPubProxy = floodContrJobPubProxy;
     }
 
+    private FloodContrJobPubProxy floodContrJobPubProxy;
 
     @Override
     public void addSupervisor(String containerName, String dockerIp,String dockerArgs, Map<String, String> host) throws TException {
@@ -54,5 +53,13 @@ public  class StormThriftServiceImpl implements StormThriftService.Iface {
     @Override
     public void addUi(String containerName, String dockerIp, String dockerArgs, Map<String, String> host) throws TException {
 
+    }
+
+    public FloodContrJobPubProxy getFloodContrJobPubProxy() {
+        return floodContrJobPubProxy;
+    }
+
+    public void setFloodContrJobPubProxy(FloodContrJobPubProxy floodContrJobPubProxy) {
+        this.floodContrJobPubProxy = floodContrJobPubProxy;
     }
 }
