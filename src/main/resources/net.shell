@@ -1,0 +1,22 @@
+network(){
+   containerName=$1
+   commond=`docker ps -aqf name=$containerName |wc -l`
+   echo $commond
+}
+
+i=1
+#后台运行，将启动的容器加入overlay网络，并设置200秒超时时间，200秒要是都没启动成功，说明有问题，不再尝试
+while (( $i<200  ))
+ do
+    let "i++"
+    result=`network $containerName`
+    if [ "$result" -lt 1 ]
+    then
+       echo "docker"$containerName" not start yet"
+    sleep 1
+    else
+       echo "docker "$containerName" start and begin to add it to overlay"
+       docker network connect overlay --ip $ip --alias $hostName  $containerName
+       break
+    fi
+done&
