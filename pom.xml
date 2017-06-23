@@ -120,6 +120,11 @@
                         <descriptorRef>jar-with-dependencies</descriptorRef>
 
                     </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.floodCtr.storm.MasterServer</mainClass>
+                        </manifest>
+                    </archive>
                     <finalName>FloodContrYu-1.0-release</finalName>
                 </configuration>
 

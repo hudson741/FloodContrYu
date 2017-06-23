@@ -49,60 +49,59 @@ public class FloodContrSubScheduler {
         Thread thread = new Thread() {
             @Override
             public void run() {
-                try {
                     while (true) {
-                        Thread.currentThread().sleep(1000);
-                        LOG.info("floodinfo scheduleSubJob begin ...");
+                        try {
+                            Thread.currentThread().sleep(1000);
+                            LOG.info("floodinfo scheduleSubJob begin ...");
 
-                        Container      container = FloodContrContainerPool.containerPool.take();
-                        List<FloodJob> floodJobs = JobRegisterPubTable.getAllFloodContrJob();
+                            Container container = FloodContrContainerPool.containerPool.take();
+                            List<FloodJob> floodJobs = JobRegisterPubTable.getAllFloodContrJob();
 
-                        LOG.info("flood size is " + floodJobs.size());
+                            LOG.info("flood size is " + floodJobs.size());
 
-                        if (CollectionUtils.isEmpty(floodJobs)) {
-                            LOG.info("floodinfo job is null so relese the container ...");
-                            yarnClient.releaseContainer(container.getId());
-                        }
-
-                        LOG.info("flood size is " + floodJobs.size());
-
-                        for (FloodJob floodJob : floodJobs) {
-                            LOG.info("floodJob is " + floodJob.getJobId());
-
-                            int reqCpu    = floodJob.getCpu();
-                            int reqMemory = floodJob.getMemory();
-
-                            LOG.info("come with container mem:" + container.getResource().getMemory() + " cpu:"
-                                     + container.getResource().getVirtualCores() + " job mem:" + floodJob.getMemory()
-                                     + " cpu:" + floodJob.getCpu());
-
-                            if ((container.getResource().getMemory() == reqMemory)
-                                    && (container.getResource().getVirtualCores() == reqCpu)) {
-                                LOG.info("floodinfo start to submit job " + floodJob.getJobId());
-
-                                int result = subFloodCtrJobToYarn(floodJob, container);
-
-                                if (result > 0) {
-                                    LOG.info("floodinfo job is submit sucees with id " + floodJob.getJobId());
-                                    JobRegisterPubTable.removeJob(floodJob.getJobId());
-
-                                    return;
-                                } else {
-                                    LOG.warn("任务提交失败。。。。" + floodJob.toString());
-                                    yarnClient.releaseContainer(container.getId());
-                                }
-                            } else {
-                                LOG.info("pass with container mem:" + container.getResource().getMemory() + " cpu:"
-                                         + container.getResource().getVirtualCores() + " job mem:"
-                                         + floodJob.getMemory() + " cpu:" + floodJob.getCpu());
+                            if (CollectionUtils.isEmpty(floodJobs)) {
+                                LOG.info("floodinfo job is null so relese the container ...");
+                                yarnClient.releaseContainer(container.getId());
                             }
-                        }
+
+                            LOG.info("flood size is " + floodJobs.size());
+
+                            for (FloodJob floodJob : floodJobs) {
+                                LOG.info("floodJob is " + floodJob.getJobId());
+
+                                int reqCpu = floodJob.getCpu();
+                                int reqMemory = floodJob.getMemory();
+
+                                LOG.info("come with container mem:" + container.getResource().getMemory() + " cpu:"
+                                        + container.getResource().getVirtualCores() + " job mem:" + floodJob.getMemory()
+                                        + " cpu:" + floodJob.getCpu());
+
+                                if ((container.getResource().getMemory() == reqMemory)
+                                        && (container.getResource().getVirtualCores() == reqCpu)) {
+                                    LOG.info("floodinfo start to submit job " + floodJob.getJobId());
+
+                                    int result = subFloodCtrJobToYarn(floodJob, container);
+
+                                    if (result > 0) {
+                                        LOG.info("floodinfo job is submit sucees with id " + floodJob.getJobId());
+                                        JobRegisterPubTable.removeJob(floodJob.getJobId());
+                                    } else {
+                                        LOG.warn("任务提交失败。。。。" + floodJob.toString());
+                                        yarnClient.releaseContainer(container.getId());
+                                    }
+                                } else {
+                                    LOG.info("pass with container mem:" + container.getResource().getMemory() + " cpu:"
+                                            + container.getResource().getVirtualCores() + " job mem:"
+                                            + floodJob.getMemory() + " cpu:" + floodJob.getCpu());
+                                }
+                            }
+
+                    }catch(Exception e){
+                        LOG.error("error ",e);
                     }
-                } catch (Exception e) {
-                    LOG.error("error", e);
-                }
+
             }
-        };
+        }};
 
         thread.start();
     }
