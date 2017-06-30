@@ -4,6 +4,19 @@ network(){
    echo $commond
 }
 
+#如果网络中有容器占用此网段，则给予移除
+netnow=`docker network inspect $netUrl |grep $ip -C 3 |grep Name | awk -F ':' '{print $2}' | awk -F ',' '{print $1}'`
+
+netnow=`echo $netnow | sed 's/"//g'`
+
+echo "now is "
+echo $netnow
+
+if [ n"$netnow" != n ]
+   then
+      docker network disconnect -f $netUrl $netnow
+fi
+
 i=1
 #后台运行，将启动的容器加入overlay网络，并设置200秒超时时间，200秒要是都没启动成功，说明有问题，不再尝试
 while (( $i<200  ))
@@ -16,7 +29,25 @@ while (( $i<200  ))
     sleep 1
     else
        echo "docker "$containerName" start and begin to add it to overlay"
-       docker network connect overlay --ip $ip --alias $hostName  $containerName
+       docker network connect $netUrl --ip $ip --alias $hostName  $containerName
        break
     fi
+done&
+
+nodeManagerCheck(){
+  commond=`ps -fe|grep NodeManager |grep -v grep | wc -l`
+  echo $commond
+}
+while true
+do
+  sleep 1
+  result=`nodeManagerCheck`
+  if [ "$result" -lt 1 ]
+  then
+     echo "hadoop nodeManager is down,release  docker"
+     docker kill $containerName
+     break
+  else
+     echo "hadoop nodeManager is health"
+  fi
 done&

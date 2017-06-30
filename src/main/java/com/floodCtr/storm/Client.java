@@ -1,6 +1,7 @@
 package com.floodCtr.storm;
 
-import com.floodCtr.generate.StormThriftService;
+import com.alibaba.fastjson.JSONObject;
+import com.floodCtr.generate.FloodContrThriftService;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -8,6 +9,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * @Description
@@ -17,22 +19,35 @@ import java.util.HashMap;
 public class Client {
 
     public static void main(String[] args)
-            throws TException
-    {
+            throws TException, InterruptedException {
         // 传输层
-        TTransport transport = new TSocket("119.29.65.85", 9000);
+//        TTransport transport = new TSocket("119.29.65.85", 9000);
+        TTransport transport = new TSocket("zhangc5", 9000);
         System.out.println("1");
         transport.open();
         // 协议层
         TProtocol protocol = new TBinaryProtocol(transport);
         System.out.println("2");
         // 创建RPC客户端
-        StormThriftService.Client client = new StormThriftService.Client(protocol);
+        FloodContrThriftService.Client client = new FloodContrThriftService.Client(protocol);
         System.out.println("3");
-        // 调用服务
-        String arg="storm nimbus -c storm.zookeeper.servers=[\"10.186.58.13\"] -c nimbus.seeds=[\"192.168.10.3\",\"192.168.10.4\"] -c nimbus.thrift.port=9005 -c ui.port=9002";
 
-        client.addSupervisor("ui-fuck","192.168.10.5",arg,new HashMap<String, String>());
+        System.out.println(client.getAllDockerJob());
+
+        String json = client.getStormNimbus();
+
+        List<String> list = JSONObject.parseArray(json,String.class);
+
+        for(String nimbus:list){
+            String[] fuck = nimbus.split(":");
+            for(String d:fuck){
+                System.out.println(d);
+            }
+        }
+
+        System.out.println(client.getStormUi());
+
+        // 调用服务
         System.out.println("4");
         // 关闭通道
         transport.close();

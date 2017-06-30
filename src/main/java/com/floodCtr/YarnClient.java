@@ -5,20 +5,20 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.floodCtr.job.FloodJob;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.NMClient;
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.client.api.impl.NMClientImpl;
+import org.apache.hadoop.yarn.client.api.impl.YarnClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.Records;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.floodCtr.publish.PRIORITY;
 
 import com.google.common.collect.Lists;
 
@@ -33,12 +33,18 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
     // 与nodemanager交互
     private NMClientImpl nmClient;
 
+    private org.apache.hadoop.yarn.client.api.YarnClient yarnClient1;
+
     private YarnClient(YarnConfiguration yarnConf) {
         nmClient = (NMClientImpl) NMClient.createNMClient();
         nmClient.init(yarnConf);
         nmClient.start();
         init(yarnConf);
         start();
+
+        yarnClient1 = YarnClientImpl.createYarnClient();
+        yarnClient1.init(yarnConf);
+        yarnClient1.start();
     }
 
     static YarnClient yarnClient;
@@ -61,19 +67,38 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
      * @param racks
      * @param priority
      */
-    public void addContainerRequest(int memory, int cpu, String[] nodes, String[] racks, PRIORITY priority) {
-        Priority priority1 = Records.newRecord(Priority.class);
-
-        priority1.setPriority(priority.getCode());
+    public void addContainerRequest(int memory, int cpu, String[] nodes, String[] racks, FloodJob.PRIORITY priority) {
+        Priority priority1 = Priority.newInstance(priority.getCode());
 
         AMRMClient.ContainerRequest req = new AMRMClient.ContainerRequest(Resource.newInstance(memory, cpu),
                                                                           nodes,
                                                                           racks,
-                                                                          priority1);
+                                                                              priority1, (nodes == null || nodes.length == 0)?true:false);
+
 
         addContainerRequest(req);
         LOG.info("apply to the yarn to get memory:" + memory + " cpu:" + cpu);
     }
+
+    public List<String> getNodes(){
+
+        List<String> nodes = Lists.newArrayList();
+        try {
+            List<NodeReport> nodeIds = yarnClient1.getNodeReports(NodeState.RUNNING);
+            LOG.info("fuck is here  ...  "+nodeIds.size());
+
+            for(NodeReport nodeReport:nodeIds){
+                nodes.add(nodeReport.getNodeId().getHost());
+            }
+        } catch (YarnException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return nodes;
+
+    }
+
 
     /**
      * 向resoursemanager确认资源的获取
@@ -99,7 +124,10 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
      * @param containerId
      */
     public void releaseContainer(ContainerId containerId) {
+
+
         releaseAssignedContainer(containerId);
+
     }
 
     /**
@@ -120,7 +148,6 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
 
         try {
             nmClient.startContainer(container, launchContext);
-
             return 1;
         } catch (YarnException e) {
             LOG.error("Caught an exception while trying to start a container", e);
@@ -131,5 +158,8 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
         return 0;
     }
 
+    public NMClientImpl getNmClient() {
+        return nmClient;
+    }
 
 }

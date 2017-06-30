@@ -1,5 +1,7 @@
 package com.floodCtr;
 
+import com.floodCtr.job.FloodJob;
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import org.apache.commons.lang.StringUtils;
@@ -12,6 +14,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -21,17 +24,42 @@ import java.util.concurrent.TimeUnit;
  */
 public class TestMain {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
+        ConcurrentHashMap<String,User> map = new ConcurrentHashMap<>();
 
-        URL url =  Resources.getResource("net.shell");
+        map.put("a",new User("a","a"));
+
+        map.get("a").setName("b");
+
+        System.out.println(map.get("a").getName());
+
+    }
 
 
-        List<String> lines = Files.readLines(new File(url.getFile()), Charset.defaultCharset());
+    static class User{
 
-        for(String line:lines){
-            line = StringUtils.replace(line,"$containerName","ui-3");
-            System.out.println(line);
+        public User(String name,String age){
+            this.name = name;
+            this.age = age;
+        }
+        public String getName() {
+            return name;
         }
 
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getAge() {
+            return age;
+        }
+
+        public void setAge(String age) {
+            this.age = age;
+        }
+
+        String name;
+
+        String age;
     }
 }
