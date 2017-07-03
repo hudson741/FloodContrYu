@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.floodCtr.YarnClient;
-import com.floodCtr.generate.FloodContrThriftService;
 import com.floodCtr.job.FloodJob;
 import com.floodCtr.publish.FloodContrJobPubProxy;
 import com.floodCtr.rpc.FloodContrMaster;
@@ -64,7 +63,8 @@ public class MasterServer {
         }
 
         logger.info("fuck dockerargs "+dockerArgs);
-        floodJob.businessTag(businessTag).priority(priority);
+        floodJob.businessTag(businessTag)
+                .priority(priority);
         floodJob.buildDockerCMD()
                 .imageName(imageName)
                 .containerName(containerName)
@@ -83,8 +83,8 @@ public class MasterServer {
          */
         final FloodContrJobPubProxy floodContrJobPubProxy = new FloodContrJobPubProxy(YarnClient.getInstance());
         final FloodContrMaster      floodContrMaster      = new FloodContrMaster(
-                                                                new FloodContrThriftService.Processor<>(
-                                                                    new StormThriftServiceImpl(floodContrJobPubProxy)),
+                                                                new StormThriftService.Processor<>(
+                                                                    new StormThriftServiceImpl(YarnClient.getInstance(),floodContrJobPubProxy)),
                                                                 9000) {
             @Override
             public void initExecute() {

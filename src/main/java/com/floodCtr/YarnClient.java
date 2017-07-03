@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.floodCtr.job.FloodJob;
+import com.floodCtr.monitor.FloodJobRunningState;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
@@ -38,6 +39,7 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
     private YarnClient(YarnConfiguration yarnConf) {
         nmClient = (NMClientImpl) NMClient.createNMClient();
         nmClient.init(yarnConf);
+        nmClient.cleanupRunningContainersOnStop(true);
         nmClient.start();
         init(yarnConf);
         start();
@@ -45,6 +47,14 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
         yarnClient1 = YarnClientImpl.createYarnClient();
         yarnClient1.init(yarnConf);
         yarnClient1.start();
+    }
+
+    public org.apache.hadoop.yarn.client.api.YarnClient getYarnClient1() {
+        return yarnClient1;
+    }
+
+    public void setYarnClient1(org.apache.hadoop.yarn.client.api.YarnClient yarnClient1) {
+        this.yarnClient1 = yarnClient1;
     }
 
     static YarnClient yarnClient;
@@ -56,6 +66,14 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
 
         yarnClient = new YarnClient(new YarnConfiguration());
         return yarnClient;
+    }
+
+    public void stop(){
+        try {
+            serviceStop();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -121,11 +139,27 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
 
     /**
      * 资源释放
+     * @param floodJobRunningState
+     */
+    public void stopContainer(FloodJobRunningState floodJobRunningState) {
+
+        try {
+
+            if(floodJobRunningState.getRunningState() == FloodJobRunningState.RUNNING_STATE.RUNNING) {
+                this.nmClient.stopContainer(floodJobRunningState.getContainerId(), floodJobRunningState.getNodeId());
+            }
+            releaseAssignedContainer(floodJobRunningState.getContainerId());
+        } catch (Throwable e) {
+            LOG.error("error ",e);
+        }
+
+    }
+
+    /**
+     * 资源释放
      * @param containerId
      */
     public void releaseContainer(ContainerId containerId) {
-
-
         releaseAssignedContainer(containerId);
 
     }

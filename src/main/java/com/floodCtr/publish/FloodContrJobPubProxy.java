@@ -30,12 +30,13 @@ public class FloodContrJobPubProxy {
      * @param priority
      */
     public  void publishJob(FloodJob floodContrJob,String node, FloodJob.PRIORITY priority) {
-
-        String[] nodes = null;
-        if(StringUtils.isNotEmpty(node)){
-            nodes = new String[1];
-            nodes[0] = node;
+        if(StringUtils.isEmpty(node)){
+            publishJob(floodContrJob,priority);
+            return;
         }
+        LOG.info("askfor "+node+"  "+priority.getCode());
+        String[] nodes = new String[1];
+        nodes[0] = node;
 
         // yarn资源申请
         LOG.info("containerrequest :"+floodContrJob.getJobId());

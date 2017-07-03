@@ -40,14 +40,11 @@ nodeManagerCheck(){
 }
 while true
 do
-  sleep 1
+  sleep 0.2
   result=`nodeManagerCheck`
   if [ "$result" -lt 1 ]
   then
-     echo "hadoop nodeManager is down,release  docker"
      docker kill $containerName
      break
-  else
-     echo "hadoop nodeManager is health"
   fi
 done&

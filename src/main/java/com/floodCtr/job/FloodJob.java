@@ -7,6 +7,7 @@ import java.util.Map;
 
 //import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 
 import com.alibaba.fastjson.annotation.JSONField;
@@ -17,6 +18,12 @@ import com.alibaba.fastjson.annotation.JSONField;
  * @Date: 2017/6/22
  */
 public class FloodJob implements Serializable {
+
+    // 任务紧急度
+    private PRIORITY priority = PRIORITY.DEFAULT_PRIORITY;
+
+    // 1:新建  2:重启  默认都是新建
+    private LAUNCH_TYPE launch_type = LAUNCH_TYPE.NEW;
 
     // 发布任务id
     private String jobId;
@@ -36,17 +43,11 @@ public class FloodJob implements Serializable {
     // 是否制定IP地址运行
     private String nodeBind;
 
-    // 任务紧急度
-    private PRIORITY priority;
-
     // 业务标识
     private String businessTag;
 
     // dockerjob运行中本地资源描述，通常指向hdfs
     Map<String, LocalResource> localResources;
-
-    //1:新建  2:重启  默认都是新建
-    private LAUNCH_TYPE launch_type = LAUNCH_TYPE.NEW;
 
     public FloodJob() {}
 
@@ -56,6 +57,70 @@ public class FloodJob implements Serializable {
         this.memory = memory;
     }
 
+    /**
+     * 任务类型，新建，还是重启
+     */
+    public enum LAUNCH_TYPE {
+        NEW(1), RESTART(2);
+
+        private int code;
+
+        private LAUNCH_TYPE() {}
+
+        ;
+        LAUNCH_TYPE(int code) {
+            this.code = code;
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
+    }
+
+    /**
+     * 描述任务发布的紧急程度
+     */
+    public enum PRIORITY {
+        LOW(2), DEFAULT_PRIORITY(1), HIGH(0);
+
+        private int code;
+
+        PRIORITY(int code) {
+            this.code = code;
+        }
+
+        public static PRIORITY getByCode(int code) {
+            if (LOW.getCode() == code) {
+                return LOW;
+            } else if (HIGH.getCode() == code) {
+                return HIGH;
+            } else {
+                return DEFAULT_PRIORITY;
+            }
+        }
+
+        public static PRIORITY getByCodeStr(String codeStr) {
+            if (StringUtils.isEmpty(codeStr)) {
+                return PRIORITY.DEFAULT_PRIORITY;
+            } else {
+                int code = Integer.parseInt(codeStr);
+
+                return getByCode(code);
+            }
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
+        }
+    }
 
     public DockerCMD buildDockerCMD() {
         DockerCMD dockerCMD = new DockerCMD();
@@ -76,8 +141,9 @@ public class FloodJob implements Serializable {
                                                               .nodeBind(this.getNodeBind())
                                                               .netUrl(this.getNetUrl())
                                                               .businessTag(this.getBusinessTag())
-                                                              .localResources(this.getLocalResources()).priority(this.getPriority())
-                                                                .launch_type(this.getLaunch_type());
+                                                              .localResources(this.getLocalResources())
+                                                              .priority(this.getPriority())
+                                                              .launch_type(this.getLaunch_type());
     }
 
     public FloodJob cpu(int cpu) {
@@ -94,6 +160,12 @@ public class FloodJob implements Serializable {
 
     public FloodJob jobId(String jobId) {
         this.jobId = jobId;
+
+        return this;
+    }
+
+    public FloodJob launch_type(LAUNCH_TYPE launch_type) {
+        this.launch_type = launch_type;
 
         return this;
     }
@@ -138,6 +210,10 @@ public class FloodJob implements Serializable {
         return jobId;
     }
 
+    public LAUNCH_TYPE getLaunch_type() {
+        return launch_type;
+    }
+
     @JSONField(serialize = false)
     public Map<String, LocalResource> getLocalResources() {
         return localResources;
@@ -161,15 +237,6 @@ public class FloodJob implements Serializable {
 
     public PRIORITY getPriority() {
         return priority;
-    }
-
-    public LAUNCH_TYPE getLaunch_type() {
-        return launch_type;
-    }
-
-    public FloodJob launch_type(LAUNCH_TYPE launch_type) {
-        this.launch_type = launch_type;
-        return this;
     }
 
     /**
@@ -286,50 +353,6 @@ public class FloodJob implements Serializable {
 
         public Map<String, String> getPort() {
             return port;
-        }
-    }
-
-    /**
-     * 任务类型，新建，还是重启
-     */
-    public  enum LAUNCH_TYPE{
-        NEW(1),RESTART(2);
-
-        private LAUNCH_TYPE(){};
-
-        public int getCode() {
-            return code;
-        }
-
-        public void setCode(int code) {
-            this.code = code;
-        }
-
-        private int code;
-
-        LAUNCH_TYPE(int code){
-            this.code = code;
-        }
-    }
-
-    /**
-     * 描述任务发布的紧急程度
-     */
-    public enum PRIORITY {
-        LOW(2), DEFAULT_PRIORITY(1), HIGH(0);
-
-        private int code;
-
-        PRIORITY(int code) {
-            this.code = code;
-        }
-
-        public int getCode() {
-            return code;
-        }
-
-        public void setCode(int code) {
-            this.code = code;
         }
     }
 }

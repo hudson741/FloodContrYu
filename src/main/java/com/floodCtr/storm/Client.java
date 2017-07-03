@@ -22,7 +22,7 @@ public class Client {
             throws TException, InterruptedException {
         // 传输层
 //        TTransport transport = new TSocket("119.29.65.85", 9000);
-        TTransport transport = new TSocket("zhangc5", 9000);
+        TTransport transport = new TSocket("zhangc3", 9000);
         System.out.println("1");
         transport.open();
         // 协议层
@@ -32,20 +32,22 @@ public class Client {
         FloodContrThriftService.Client client = new FloodContrThriftService.Client(protocol);
         System.out.println("3");
 
-        System.out.println(client.getAllDockerJob());
+//        System.out.println(client.getAllDockerJob());
+//
+//        String json = client.getStormNimbus();
+//
+//        List<String> list = JSONObject.parseArray(json,String.class);
+//
+//        for(String nimbus:list){
+//            String[] fuck = nimbus.split(":");
+//            for(String d:fuck){
+//                System.out.println(d);
+//            }
+//        }
+//
+//        System.out.println(client.getStormUi());
 
-        String json = client.getStormNimbus();
-
-        List<String> list = JSONObject.parseArray(json,String.class);
-
-        for(String nimbus:list){
-            String[] fuck = nimbus.split(":");
-            for(String d:fuck){
-                System.out.println(d);
-            }
-        }
-
-        System.out.println(client.getStormUi());
+        System.out.println(client.restartDocker("application_1498882662153_0002"));
 
         // 调用服务
         System.out.println("4");

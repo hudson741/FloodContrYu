@@ -40,6 +40,8 @@ public class FloodJobRunningState implements Serializable{
         return floodJob;
     }
 
+    public FloodJobRunningState(){}
+
     public void setFloodJob(FloodJob floodJob) {
         this.floodJob = floodJob;
     }

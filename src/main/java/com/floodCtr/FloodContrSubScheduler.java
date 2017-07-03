@@ -60,6 +60,7 @@ public class FloodContrSubScheduler {
                         List<FloodJob> floodJobs = JobRegisterPubTable.getAllFloodContrJob();
 
                         LOG.info("flood size is " + floodJobs.size());
+                        LOG.info("priority with container "+container.getNodeId().getHost()+"  "+container.getPriority().getPriority());
 
                         /**
                          * 当前无任务，释放已申请到的资源
@@ -80,18 +81,15 @@ public class FloodContrSubScheduler {
                                 continue;
                             }
 
-                            //ip绑定 和 优先级必须同时匹配 才给予发布
-                            if (StringUtils.isNotEmpty(floodJob.getNodeBind())) {
-                                String node = floodJob.getNodeBind();
+                            //1,先确认资源优先级是否匹配
+                            if(floodJob.getPriority().getCode() != container.getPriority().getPriority()){
+                                continue;
+                            }
 
-                                LOG.info("bind ip " + node + "  " + container.getNodeId().getHost()+" priority "+container.getPriority().getPriority());
-
-                                if ((!container.getNodeId().getHost().equals(node))
-                                        || (container.getPriority().getPriority() != floodJob.getPriority().getCode())) {
-                                    LOG.info("bind ip " + node + "  " + container.getNodeId().getHost() +  "priority "+floodJob.getPriority()+"  "+container.getPriority().getPriority()  +" pass");
-
-                                    continue;
-                                }
+                            //2,如果任务进行了IP绑定，则需要ip匹配才给予发布
+                            if (StringUtils.isNotEmpty(floodJob.getNodeBind()) &&  !container.getNodeId().getHost().equals(floodJob.getNodeBind())) {
+                                LOG.info("bind ip    " + container.getNodeId().getHost() +  "priority "+floodJob.getPriority()+"  "+container.getPriority().getPriority()  +" pass");
+                                continue;
                             }
 
                             int reqCpu    = floodJob.getCpu();
@@ -101,7 +99,7 @@ public class FloodContrSubScheduler {
                                      + container.getResource().getVirtualCores() + " job mem:" + floodJob.getMemory()
                                      + " cpu:" + floodJob.getCpu());
 
-                            //资源需适配
+                            //3,最后一步，资源配量是否匹配
                             if ((container.getResource().getMemory() == reqMemory)
                                     && (container.getResource().getVirtualCores() == reqCpu)) {
                                 LOG.info("floodinfo start to submit job " + floodJob.getJobId());
@@ -170,7 +168,7 @@ public class FloodContrSubScheduler {
 
             StringBuilder yarnCommands = new StringBuilder();
 
-            yarnCommands.append("sh ").append(YARN_EXECUTE_FILE).append(" 1>/opt/stdout ").append("2>/opt/stderr");
+            yarnCommands.append("sh ").append(YARN_EXECUTE_FILE).append(" 1>/opt/"+container.getId()+"_stdout ").append("2>/opt/"+container.getId()+"_stderr");
 
             return yarnClient.startDockerContainer(container,
                                                    floodContrJob.getLocalResources(),

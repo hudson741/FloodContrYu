@@ -1,18 +1,22 @@
 package com.floodCtr.monitor;
 
-import com.floodCtr.YarnClient;
-import com.floodCtr.job.FloodJob;
-import com.google.common.collect.Lists;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerState;
+import org.apache.hadoop.yarn.api.records.ContainerStatus;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.floodCtr.YarnClient;
+import com.floodCtr.job.FloodJob;
+
+import com.google.common.collect.Lists;
 
 /**
  * @Description
@@ -20,29 +24,63 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Date: 2017/6/26
  */
 public class FloodContrRunningMonitor {
-
-    private static final Logger logger            = LoggerFactory.getLogger(FloodContrRunningMonitor.class);
-
-    public static volatile ConcurrentHashMap<String, FloodJobRunningState> floodJobRunningStates = new ConcurrentHashMap<>();
-
+    private static final Logger                                            logger                =
+        LoggerFactory.getLogger(FloodContrRunningMonitor.class);
+    public static volatile ConcurrentHashMap<String, FloodJobRunningState> floodJobRunningStates =
+        new ConcurrentHashMap<>();
     private YarnClient yarnClient;
 
-    public FloodContrRunningMonitor(YarnClient yarnClient){
+    public FloodContrRunningMonitor(YarnClient yarnClient) {
         this.yarnClient = yarnClient;
     }
 
-    public static List<FloodJobRunningState> getFloodJobRunningState(){
-        List<FloodJobRunningState> result = Lists.newArrayList();
-        Collection collection = floodJobRunningStates.values();
-        if(CollectionUtils.isEmpty(collection)){
-            return result;
-        }else{
-            Iterator iterator = collection.iterator();
-            while(iterator.hasNext()){
-                result.add((FloodJobRunningState)iterator.next());
+    public void monitor() {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.currentThread().sleep(1000);
+
+                        if (floodJobRunningStates.isEmpty()) {
+                            logger.info("floodJobRunningStates is empty");
+                        } else {
+                            for (FloodJobRunningState floodJobRunningState : floodJobRunningStates.values()) {
+                                if (floodJobRunningState.getRunningState()
+                                        == FloodJobRunningState.RUNNING_STATE.RUNNING) {
+                                    try {
+                                        ContainerStatus containerStatus = yarnClient.getNmClient()
+                                                                                    .getContainerStatus(
+                                                                                        floodJobRunningState.getContainerId(),
+                                                                                        floodJobRunningState.getNodeId());
+
+                                        if (containerStatus.getState() == ContainerState.COMPLETE) {
+                                            floodJobRunningState.setRunningState(
+                                                FloodJobRunningState.RUNNING_STATE.STOP);
+                                        }
+
+                                        logger.info("size  containerStatus" + floodJobRunningStates.size()
+                                                    + "  with containerState " + containerStatus.getState()
+                                                    + " containerId" + containerStatus.getContainerId() + " status "
+                                                    + containerStatus.getExitStatus());
+                                    } catch(Exception e){
+                                        logger.info("container not exits ", e);
+                                        floodJobRunningState.setRunningState(FloodJobRunningState.RUNNING_STATE.STOP);
+                                    } catch (Throwable e) {
+                                        logger.info("nodemanager is died ", e);
+                                        floodJobRunningState.setRunningState(FloodJobRunningState.RUNNING_STATE.STOP);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.info("error ", e);
+                    }
+                }
             }
-        }
-        return result;
+        };
+
+        thread.start();
     }
 
     /**
@@ -61,48 +99,20 @@ public class FloodContrRunningMonitor {
         floodJobRunningStates.remove(id);
     }
 
-    public void monitor(){
-        Thread thread = new Thread(){
+    public static List<FloodJobRunningState> getFloodJobRunningState() {
+        List<FloodJobRunningState> result     = Lists.newArrayList();
+        Collection                 collection = floodJobRunningStates.values();
 
-            @Override
-            public void run(){
-              ContainerId containerId = null;
-                while (true){
-                    try{
-                        Thread.currentThread().sleep(1000);
-                        if(floodJobRunningStates.isEmpty()){
-                            logger.info("floodJobRunningStates is empty");
-                        }else{
-                            for(FloodJobRunningState floodJobRunningState: floodJobRunningStates.values()){
-                                try {
-                                    containerId = floodJobRunningState.getContainerId();
-                                    if(floodJobRunningState.getRunningState() == FloodJobRunningState.RUNNING_STATE.RUNNING) {
-                                        ContainerStatus containerStatus = yarnClient.getNmClient().getContainerStatus(floodJobRunningState.getContainerId(), floodJobRunningState.getNodeId());
-                                        logger.info("size  containerStatus" + floodJobRunningStates.size() + "  with containerState " + containerStatus.getState() + " containerId"
-                                                + containerStatus.getContainerId() + " status " + containerStatus.getExitStatus());
-                                    }
-                                }catch(Exception e){
-                                    logger.info("container not exits ",e);
-                                    yarnClient.releaseContainer(containerId);
-                                    floodJobRunningState.setRunningState(FloodJobRunningState.RUNNING_STATE.STOP);
+        if (CollectionUtils.isEmpty(collection)) {
+            return result;
+        } else {
+            Iterator iterator = collection.iterator();
 
-                                }
-                            }
-                        }
-
-
-
-                    }catch(Exception e){
-                        logger.info("error ",e);
-                    }
-                }
+            while (iterator.hasNext()) {
+                result.add((FloodJobRunningState) iterator.next());
             }
+        }
 
-        };
-        thread.start();
-
-
+        return result;
     }
-
-
 }
