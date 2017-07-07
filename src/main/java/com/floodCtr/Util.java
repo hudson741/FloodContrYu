@@ -37,31 +37,7 @@ import org.apache.log4j.Logger;
 
 
 public class Util {
-    public static final String STORM_CONF_PATH_STRING = "conf" + Path.SEPARATOR + "storm.yaml";
     static Logger              logger                 = Logger.getLogger(Util.class);
-
-
-    /**
-     * Checks for a given path whether the Other permissions on it
-     * imply the permission in the passed FsAction
-     * @param fs
-     * @param path
-     * @param action
-     * @return true if the path in the uri is visible to all, false otherwise
-     * @throws IOException
-     */
-    private static boolean checkPermissionOfOther(FileSystem fs, Path path, FsAction action) throws IOException {
-        FileStatus   status      = fs.getFileStatus(path);
-        FsPermission perms       = status.getPermission();
-        FsAction     otherAction = perms.getOtherAction();
-
-        if (otherAction.implies(action)) {
-            return true;
-        }
-
-        return false;
-    }
-
 
     public static List<URL> findResources(String name) {
         try {

@@ -1,6 +1,12 @@
 package com.floodCtr;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+
+import java.io.StringBufferInputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -12,11 +18,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.http.HttpException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +64,8 @@ public class FloodContrSubScheduler {
                         List<FloodJob> floodJobs = JobRegisterPubTable.getAllFloodContrJob();
 
                         LOG.info("flood size is " + floodJobs.size());
-                        LOG.info("priority with container "+container.getNodeId().getHost()+"  "+container.getPriority().getPriority());
+                        LOG.info("priority with container " + container.getNodeId().getHost() + "  "
+                                 + container.getPriority().getPriority());
 
                         /**
                          * 当前无任务，释放已申请到的资源
@@ -75,20 +80,27 @@ public class FloodContrSubScheduler {
                         for (FloodJob floodJob : floodJobs) {
                             LOG.info("floodJob is " + floodJob.getJobId());
 
-                            FloodJobRunningState floodJobRunningState =  FloodContrRunningMonitor.floodJobRunningStates.get(floodJob.getJobId());
-                            if(floodJobRunningState == null ){
+                            FloodJobRunningState floodJobRunningState =
+                                FloodContrRunningMonitor.floodJobRunningStates.get(floodJob.getJobId());
+
+                            if (floodJobRunningState == null) {
                                 LOG.info("already removed 不需要启动了");
+
                                 continue;
                             }
 
-                            //1,先确认资源优先级是否匹配
-                            if(floodJob.getPriority().getCode() != container.getPriority().getPriority()){
+                            // 1,先确认资源优先级是否匹配
+                            if (floodJob.getPriority().getCode() != container.getPriority().getPriority()) {
                                 continue;
                             }
 
-                            //2,如果任务进行了IP绑定，则需要ip匹配才给予发布
-                            if (StringUtils.isNotEmpty(floodJob.getNodeBind()) &&  !container.getNodeId().getHost().equals(floodJob.getNodeBind())) {
-                                LOG.info("bind ip    " + container.getNodeId().getHost() +  "priority "+floodJob.getPriority()+"  "+container.getPriority().getPriority()  +" pass");
+                            // 2,如果任务进行了IP绑定，则需要ip匹配才给予发布
+                            if (StringUtils.isNotEmpty(floodJob.getNodeBind())
+                                    &&!container.getNodeId().getHost().equals(floodJob.getNodeBind())) {
+                                LOG.info("bind ip    " + container.getNodeId().getHost() + "priority "
+                                         + floodJob.getPriority() + "  " + container.getPriority().getPriority()
+                                         + " pass");
+
                                 continue;
                             }
 
@@ -99,7 +111,7 @@ public class FloodContrSubScheduler {
                                      + container.getResource().getVirtualCores() + " job mem:" + floodJob.getMemory()
                                      + " cpu:" + floodJob.getCpu());
 
-                            //3,最后一步，资源配量是否匹配
+                            // 3,最后一步，资源配量是否匹配
                             if ((container.getResource().getMemory() == reqMemory)
                                     && (container.getResource().getVirtualCores() == reqCpu)) {
                                 LOG.info("floodinfo start to submit job " + floodJob.getJobId());
@@ -109,7 +121,6 @@ public class FloodContrSubScheduler {
                                 if (result > 0) {
                                     LOG.info("floodinfo job is submit sucees with id " + floodJob.getJobId());
                                     JobRegisterPubTable.removeJob(floodJob.getJobId());
-
                                     floodJobRunningState.setContainerId(container.getId());
                                     floodJobRunningState.setNodeId(container.getNodeId());
                                     floodJobRunningState.setRunIp(container.getNodeId().getHost());
@@ -142,33 +153,41 @@ public class FloodContrSubScheduler {
      * @param floodContrJob
      * @param container
      */
-    private int subFloodCtrJobToYarn(FloodJob floodContrJob, Container container) {
+    private int subFloodCtrJobToYarn(FloodJob floodContrJob, Container container) throws HttpException, URISyntaxException {
         LOG.info("submit a job " + floodContrJob.getJobId());
 
-        FileSystem fs = null;
 
         try {
-            fs = FileSystem.get(new YarnConfiguration());
 
-            List<String>               yarnShell      = FloodContrTrans.floodJobToYarnCmd(floodContrJob);
-            Path                       exePath        = writeYarnShell2HDFS(fs, yarnShell, container.getId() + "");
+            List<String> yarnShell = FloodContrTrans.floodJobToYarnCmd(floodContrJob);
+
+
             Map<String, LocalResource> localResources = floodContrJob.getLocalResources();
 
             if (localResources == null) {
                 localResources = new HashMap<>();
             }
 
-            localResources.put(YARN_EXECUTE_FILE,
-                               Util.newYarnAppResource(fs,
-                                                       exePath,
-                                                       LocalResourceType.FILE,
-                                                       LocalResourceVisibility.PUBLIC));
+            String fileSystem = System.getenv("fs");
+            LocalResource localResource = null;
+
+            if(fileSystem.equals("ftp")){
+                localResource = writeReturnFTPLocalResources(yarnShell,container.getId()+"");
+            }else{
+                FileSystem fs = FileSystem.get(new YarnConfiguration());
+                localResource = writeYarnShell2HDFS(fs,yarnShell,container.getId()+"");
+            }
+
+            localResources.put(YARN_EXECUTE_FILE, localResource);
             floodContrJob.localResources(localResources);
             LOG.info("gona start docker  with" + container.getId() + "  " + container.getNodeId());
 
             StringBuilder yarnCommands = new StringBuilder();
 
-            yarnCommands.append("sh ").append(YARN_EXECUTE_FILE).append(" 1>/opt/"+container.getId()+"_stdout ").append("2>/opt/"+container.getId()+"_stderr");
+            yarnCommands.append("sh ")
+                        .append(YARN_EXECUTE_FILE)
+                        .append(" 1>/opt/" + container.getId() + "_stdout ")
+                        .append("2>/opt/" + container.getId() + "_stderr");
 
             return yarnClient.startDockerContainer(container,
                                                    floodContrJob.getLocalResources(),
@@ -180,7 +199,7 @@ public class FloodContrSubScheduler {
         return 0;
     }
 
-    private Path writeYarnShell2HDFS(FileSystem fs, List<String> yarnShell, String childDir) throws IOException {
+    private LocalResource writeYarnShell2HDFS(FileSystem fs, List<String> yarnShell, String childDir) throws IOException {
         Path exePath = new Path(fs.getHomeDirectory(),
                                 "dockershell" + Path.SEPARATOR + childDir + Path.SEPARATOR + YARN_EXECUTE_FILE);
         Path dirDst = exePath.getParent();
@@ -197,6 +216,44 @@ public class FloodContrSubScheduler {
         out.flush();
         out.close();
 
-        return exePath;
+        return Util.newYarnAppResource(fs, exePath, LocalResourceType.FILE, LocalResourceVisibility.PUBLIC);
+
+    }
+
+    private LocalResource writeReturnFTPLocalResources( List<String> yarnShell, String childDir)
+            throws IOException, HttpException, URISyntaxException {
+        StringBuilder s = new StringBuilder();
+
+        for (String shell : yarnShell) {
+            s.append(shell).append("\n");
+        }
+
+        String ftpServer = System.getenv("ftpAddr");
+
+        String ftpPort = System.getenv("ftpPort");
+
+        String ftpUserName = System.getenv("ftpUserName");
+
+        String ftpPassword = System.getenv("ftpPassword");
+
+        FtpUtil ftpUtil = new FtpUtil(ftpServer,ftpPort,ftpUserName,ftpPassword);
+
+        ftpUtil.writes("dockershell"+Path.SEPARATOR+childDir,YARN_EXECUTE_FILE,new ByteArrayInputStream(s.toString().getBytes()));
+
+        long size = ftpUtil.getFileSize(Path.SEPARATOR+"dockershell"+Path.SEPARATOR+childDir,YARN_EXECUTE_FILE);
+
+        ftpUtil.disconnect();
+
+        long          timeStamp     = ftpUtil.getFtpFileTimeStamp("dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE);
+        LOG.info(" user ftp writes "+ftpUtil.getRemoteFtpServerAddress()+Path.SEPARATOR +"dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE);
+        LocalResource localResource = LocalResource.newInstance(
+                org.apache.hadoop.yarn.api.records.URL.fromURI(
+                        new URI(ftpUtil.getRemoteFtpServerAddress()+Path.SEPARATOR +"dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE)),
+                LocalResourceType.FILE,
+                LocalResourceVisibility.APPLICATION,
+                size,
+                timeStamp);
+
+        return localResource;
     }
 }

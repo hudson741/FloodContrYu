@@ -25,13 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class TestMain {
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        ConcurrentHashMap<String,User> map = new ConcurrentHashMap<>();
 
-        map.put("a",new User("a","a"));
-
-        map.get("a").setName("b");
-
-        System.out.println(map.get("a").getName());
 
     }
 

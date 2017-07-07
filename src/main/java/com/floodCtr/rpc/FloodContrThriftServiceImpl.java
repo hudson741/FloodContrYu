@@ -39,13 +39,14 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
 
     @Override
     public String killApplication(String appId) throws TException {
-        yarnClient.stop();
 
         try {
 
             for(FloodJobRunningState floodJobRunningState:  FloodContrRunningMonitor.floodJobRunningStates.values()){
                 yarnClient.stopContainer(floodJobRunningState);
             }
+            yarnClient.stop();
+
             yarnClient.getYarnClient1().killApplication(ApplicationId.fromString(appId));
 
         } catch (YarnException e) {
