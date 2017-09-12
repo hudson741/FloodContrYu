@@ -35,7 +35,7 @@ public class FloodContrHeartBeat {
             public void run() {
                 try {
                     while (true) {
-                        LOG.info("floodinfo : alocate container .....");
+//                        LOG.info("floodinfo : alocate container .....");
                         Thread.currentThread().sleep(1000);
                         if ((yarnClient.getServiceState() == Service.STATE.STARTED)
                                 &&!Thread.currentThread().isInterrupted()) {

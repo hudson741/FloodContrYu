@@ -1,20 +1,24 @@
 package com.floodCtr.monitor;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.floodCtr.YarnClient;
-import com.floodCtr.job.FloodJob;
 
 import com.google.common.collect.Lists;
 
@@ -34,36 +38,73 @@ public class FloodContrRunningMonitor {
         this.yarnClient = yarnClient;
     }
 
-    public void monitor() {
+    public void monitor() throws IOException {
+        String appId = System.getenv("appId");
+        YarnConfiguration yarnConf   = new YarnConfiguration();
+        final FileSystem fs = FileSystem.get(yarnConf);
+        final Path floodStorePath = new Path(fs.getHomeDirectory(),
+                "store" + Path.SEPARATOR +appId+Path.SEPARATOR+ "flood.txt");
+
+        Thread saveT = new Thread(){
+
+            public void run(){
+                while(true){
+                    try{
+                        Thread.currentThread().sleep(2000);
+
+                        if(!floodJobRunningStates.isEmpty()){
+                            List<FloodJobRunningState> list = Lists.newArrayList();
+                            for(FloodJobRunningState floodJobRunningState : floodJobRunningStates.values()){
+                                list.add(floodJobRunningState);
+                            }
+
+                            Path dirDst = floodStorePath.getParent();
+
+                            fs.mkdirs(dirDst);
+
+                            FSDataOutputStream out = fs.create(floodStorePath);
+
+                            String json = JSONObject.toJSONString(list);
+                            out.write(json.getBytes("UTF-8"));
+                            out.flush();
+                            out.close();
+                        }
+
+                    }catch(Exception e){
+                        logger.error("error ",e);
+                    }
+                }
+            }
+
+        };
+        saveT.start();
+
         Thread thread = new Thread() {
             @Override
             public void run() {
                 while (true) {
                     try {
                         Thread.currentThread().sleep(1000);
-
-                        if (floodJobRunningStates.isEmpty()) {
-                            logger.info("floodJobRunningStates is empty");
-                        } else {
+                        if (!floodJobRunningStates.isEmpty()) {
                             for (FloodJobRunningState floodJobRunningState : floodJobRunningStates.values()) {
                                 if (floodJobRunningState.getRunningState()
                                         == FloodJobRunningState.RUNNING_STATE.RUNNING) {
                                     try {
                                         ContainerStatus containerStatus = yarnClient.getNmClient()
-                                                                                    .getContainerStatus(
-                                                                                        floodJobRunningState.getContainerId(),
-                                                                                        floodJobRunningState.getNodeId());
+                                                .getContainerStatus(
+                                                        floodJobRunningState.getContainerId(),
+                                                        floodJobRunningState.getNodeId());
 
                                         if (containerStatus.getState() == ContainerState.COMPLETE) {
                                             floodJobRunningState.setRunningState(
-                                                FloodJobRunningState.RUNNING_STATE.STOP);
+                                                    FloodJobRunningState.RUNNING_STATE.STOP);
                                         }
 
-                                        logger.info("size  containerStatus" + floodJobRunningStates.size()
-                                                    + "  with containerState " + containerStatus.getState()
-                                                    + " containerId" + containerStatus.getContainerId() + " status "
-                                                    + containerStatus.getExitStatus());
-                                    } catch(Exception e){
+//                                        logger.info("size  containerStatus" + floodJobRunningStates.size()
+//                                                + "  with containerState " + containerStatus.getState()
+//                                                + " containerId" + containerStatus.getContainerId() + " status "
+//                                                + containerStatus.getExitStatus());
+                                    } catch (Exception e) {
                                         logger.info("container not exits ", e);
                                         floodJobRunningState.setRunningState(FloodJobRunningState.RUNNING_STATE.STOP);
                                     } catch (Throwable e) {

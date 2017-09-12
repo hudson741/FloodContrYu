@@ -1,12 +1,13 @@
 package com.floodCtr.rpc;
 
-import java.io.IOException;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.thrift.TException;
 
@@ -45,10 +46,17 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
             for(FloodJobRunningState floodJobRunningState:  FloodContrRunningMonitor.floodJobRunningStates.values()){
                 yarnClient.stopContainer(floodJobRunningState);
             }
+            Thread.currentThread().sleep(1000);
             yarnClient.stop();
-
-            yarnClient.getYarnClient1().killApplication(ApplicationId.fromString(appId));
-
+            List<ApplicationReport> list = yarnClient.getYarnClient1().getApplications();
+            for(ApplicationReport applicationReport : list){
+                logger.info("fuck applicationReport "+applicationReport.getApplicationId()+" "+applicationReport.getApplicationType()+" "+applicationReport.getYarnApplicationState().toString());
+                if(applicationReport.getApplicationId().toString().equals(appId)){
+                    yarnClient.getYarnClient1().killApplication(applicationReport.getApplicationId());
+                }
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         } catch (YarnException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -83,11 +91,6 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
     public String stopDocker(String jobId) throws TException {
         FloodJobRunningState floodJobRunningState = FloodContrRunningMonitor.floodJobRunningStates.get(jobId);
 
-        if ((floodJobRunningState == null)
-                || (floodJobRunningState.getRunningState() != FloodJobRunningState.RUNNING_STATE.RUNNING)) {
-            return "已停止，无需再停止";
-        }
-
         yarnClient.stopContainer(floodJobRunningState);
 
         return "已处理";
@@ -105,13 +108,12 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
 
         logger.info("cm : " + cm);
 
-        if (StringUtils.isEmpty(cm)) {
-            cm = "1";
-        }
+        FloodJob.CM dockerCM = FloodJob.CM.getCM(cm);
 
-        int      cmi      = Integer.parseInt(cm);
-        FloodJob floodJob = new FloodJob(jobId, 1 * cmi, 1024 * cmi);
+        FloodJob floodJob = new FloodJob(jobId, dockerCM);
         String   netUrl1  = System.getenv("netUrl");
+
+        String hadoopUser = System.getenv("hadoopUser");
 
         logger.info("add docker with args "+dockerArgs);
 
@@ -129,6 +131,7 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
                 .host(containerName, dockerIp)
                 .ip(dockerIp)
                 .hosts(host)
+                .volume("/home/"+hadoopUser+"/stormlog","/opt/storm/logs")
                 .ports(port)
                 .dockerArgs(dockerArgs);
         floodContrJobPubProxy.publishJob(floodJob,runIp, priority1);

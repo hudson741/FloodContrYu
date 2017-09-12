@@ -5,7 +5,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-//import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -51,10 +50,66 @@ public class FloodJob implements Serializable {
 
     public FloodJob() {}
 
+    public FloodJob(String jobId, CM cm) {
+        this.jobId  = jobId;
+        this.cpu    = cm.getCpu();
+        this.memory = cm.getMemory();
+    }
+
     public FloodJob(String jobId, int cpu, int memory) {
         this.jobId  = jobId;
         this.cpu    = cpu;
         this.memory = memory;
+    }
+
+    public enum CM {
+        CMLOW(1, 512), CMNOMAL(1,1024), CMH1(2, 2048), CMH2(4, 4096);
+
+        private int cpu;
+        private int memory;
+
+        CM(int cpu, int memory) {
+            this.cpu    = cpu;
+            this.memory = memory;
+        }
+
+        public static CM getCM(String cm) {
+            if (StringUtils.isEmpty(cm)) {
+                return CMNOMAL;
+            }
+
+            int code = 1;
+
+            try {
+                code = Integer.parseInt(cm);
+            } catch (Throwable e) {}
+
+            if (code == 2) {
+                return CMH1;
+            } else if (code == 3) {
+                return CMH2;
+            } else if(code == 1) {
+                return CMNOMAL;
+            }else{
+                return CMLOW;
+            }
+        }
+
+        public int getCpu() {
+            return cpu;
+        }
+
+        public void setCpu(int cpu) {
+            this.cpu = cpu;
+        }
+
+        public int getMemory() {
+            return memory;
+        }
+
+        public void setMemory(int memory) {
+            this.memory = memory;
+        }
     }
 
     /**
@@ -250,6 +305,9 @@ public class FloodJob implements Serializable {
         // port 宿主机映射
         private Map<String, String> port = new HashMap<>();
 
+        // volume目录对应
+        private Map<String, String> volume = new HashMap<>();
+
         // 使用镜像
         private String imageName;
 
@@ -327,6 +385,12 @@ public class FloodJob implements Serializable {
             return this;
         }
 
+        public DockerCMD volume(String localDir, String dockerDir) {
+            this.volume.put(localDir, dockerDir);
+
+            return this;
+        }
+
         public String getContainerName() {
             return containerName;
         }
@@ -353,6 +417,10 @@ public class FloodJob implements Serializable {
 
         public Map<String, String> getPort() {
             return port;
+        }
+
+        public Map<String, String> getVolume() {
+            return volume;
         }
     }
 }

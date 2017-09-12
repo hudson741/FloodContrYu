@@ -1,23 +1,32 @@
 package com.floodCtr.rpc;
 
+import com.alibaba.fastjson.JSONObject;
 import com.floodCtr.FloodContrHeartBeat;
 import com.floodCtr.FloodContrSubScheduler;
 import com.floodCtr.YarnClient;
 import com.floodCtr.monitor.FloodContrRunningMonitor;
+import com.floodCtr.monitor.FloodJobRunningState;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -70,7 +79,7 @@ public abstract class FloodContrMaster extends ThriftServer{
     private void synchronizeServerAdress2ZK(){
         try {
             clear(FLOOD_MASTER_SERVER);
-            String address =   InetAddress.getLocalHost().getHostAddress()+":9000";
+            String address =   InetAddress.getLocalHost().getHostAddress()+":9050";
             byte[] bytes = address.getBytes();
             if (client.checkExists().forPath(FLOOD_MASTER_SERVER) != null) {
                 client.setData().forPath(FLOOD_MASTER_SERVER, bytes);
@@ -114,8 +123,9 @@ public abstract class FloodContrMaster extends ThriftServer{
 
             FloodContrRunningMonitor floodContrHealthCheck = new FloodContrRunningMonitor(yarnClient);
 
-
-            initExecute();
+            if(!reload()) {
+                initExecute();
+            }
 
             floodContrHeartBeat.scheduleHeartBeat(1, TimeUnit.SECONDS);
 
@@ -130,6 +140,44 @@ public abstract class FloodContrMaster extends ThriftServer{
         } catch (TTransportException e) {
            LOG.error("error ",e);
         }
+
+    }
+
+    private  boolean reload(){
+        String appId = System.getenv("appId");
+        YarnConfiguration yarnConf   = new YarnConfiguration();
+        FileSystem fs;
+        try {
+            fs = FileSystem.get(yarnConf);
+            Path floodStorePath = new Path(fs.getHomeDirectory(),
+                    "store" + Path.SEPARATOR +appId+Path.SEPARATOR+ "flood.txt");
+            LOG.info("reload  "+fs.getHomeDirectory()+"store" + Path.SEPARATOR +appId+Path.SEPARATOR+ "flood.txt");
+            if(fs.exists(floodStorePath)) {
+                FSDataInputStream fsDataInputStream = fs.open(floodStorePath);
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fsDataInputStream, "UTF-8"));
+                StringBuilder jbuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    jbuilder.append(line);
+                }
+                bufferedReader.close();
+                String json = jbuilder.toString();
+                if(StringUtils.isEmpty(json)){
+                    return false;
+                }
+                List<FloodJobRunningState> list = JSONObject.parseObject(json,List.class);
+                for(FloodJobRunningState f:list){
+                    FloodContrRunningMonitor.floodJobRunningStates.put(f.getJobId(),f);
+                }
+                return true;
+
+            }
+
+
+        } catch (IOException e) {
+            LOG.error("error ",e);
+        }
+        return false;
 
     }
 
