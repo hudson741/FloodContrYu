@@ -63,7 +63,7 @@ public class FloodJob implements Serializable {
     }
 
     public enum CM {
-        CMLOW(1, 512), CMNOMAL(1,1024), CMH1(2, 2048), CMH2(4, 4096);
+        CMLOW(1, 1024), CMLOW2(1,1024),CMNOMAL(1,2048), CMH1(2, 4096), CMH2(4, 4096);
 
         private int cpu;
         private int memory;
@@ -77,21 +77,23 @@ public class FloodJob implements Serializable {
             if (StringUtils.isEmpty(cm)) {
                 return CMNOMAL;
             }
-
             int code = 1;
-
             try {
                 code = Integer.parseInt(cm);
             } catch (Throwable e) {}
 
-            if (code == 2) {
-                return CMH1;
-            } else if (code == 3) {
-                return CMH2;
-            } else if(code == 1) {
+            if (code == 0) {
+                return CMLOW2;
+            } else if (code == 1) {
                 return CMNOMAL;
-            }else{
+            } else if(code == 2) {
+                return CMH1;
+            }else if(code == 3){
+                return CMH2;
+            }else if (code == 4){
                 return CMLOW;
+            }else{
+                return CMNOMAL;
             }
         }
 
@@ -294,6 +296,42 @@ public class FloodJob implements Serializable {
         return priority;
     }
 
+    public void setPriority(PRIORITY priority) {
+        this.priority = priority;
+    }
+
+    public void setLaunch_type(LAUNCH_TYPE launch_type) {
+        this.launch_type = launch_type;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
+
+    public void setCpu(int cpu) {
+        this.cpu = cpu;
+    }
+
+    public void setNetUrl(String netUrl) {
+        this.netUrl = netUrl;
+    }
+
+    public void setDockerCMD(DockerCMD dockerCMD) {
+        this.dockerCMD = dockerCMD;
+    }
+
+    public void setNodeBind(String nodeBind) {
+        this.nodeBind = nodeBind;
+    }
+
+    public void setBusinessTag(String businessTag) {
+        this.businessTag = businessTag;
+    }
+
+    public void setLocalResources(Map<String, LocalResource> localResources) {
+        this.localResources = localResources;
+    }
+
     /**
      * 用于创建docker容器所需的配置
      */
@@ -421,6 +459,38 @@ public class FloodJob implements Serializable {
 
         public Map<String, String> getVolume() {
             return volume;
+        }
+
+        public void setHost(Map<String, String> host) {
+            this.host = host;
+        }
+
+        public void setPort(Map<String, String> port) {
+            this.port = port;
+        }
+
+        public void setVolume(Map<String, String> volume) {
+            this.volume = volume;
+        }
+
+        public void setImageName(String imageName) {
+            this.imageName = imageName;
+        }
+
+        public void setContainerName(String containerName) {
+            this.containerName = containerName;
+        }
+
+        public void setDockerArgs(String dockerArgs) {
+            this.dockerArgs = dockerArgs;
+        }
+
+        public void setIp(String ip) {
+            this.ip = ip;
+        }
+
+        public void setHostName(String hostName) {
+            this.hostName = hostName;
         }
     }
 }

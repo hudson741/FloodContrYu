@@ -146,9 +146,10 @@ public class YarnClient extends AMRMClientImpl<AMRMClient.ContainerRequest>{
         try {
 
             if(floodJobRunningState.getRunningState() == FloodJobRunningState.RUNNING_STATE.RUNNING) {
-                this.nmClient.stopContainer(floodJobRunningState.getContainerId(), floodJobRunningState.getNodeId());
+                  this.nmClient.stopContainer(ContainerId.fromString(floodJobRunningState.getContainerIdStr()),NodeId.newInstance(floodJobRunningState.getNodeHOST(),floodJobRunningState.getNodePort()));
+//                this.nmClient.stopContainer(floodJobRunningState.getContainerId(), floodJobRunningState.getNodeId());
             }
-            releaseAssignedContainer(floodJobRunningState.getContainerId());
+//            releaseAssignedContainer(floodJobRunningState.getContainerId());
         } catch (Throwable e) {
             LOG.error("error ",e);
         }

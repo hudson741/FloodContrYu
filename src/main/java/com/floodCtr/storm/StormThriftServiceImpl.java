@@ -61,7 +61,8 @@ public class StormThriftServiceImpl extends FloodContrThriftServiceImpl implemen
         }
 
         for (FloodJobRunningState floodJobRunningState : list) {
-            if (floodJobRunningState.getFloodJob().getBusinessTag().equals("ui")) {
+            System.out.println("getStormUI "+JSONObject.toJSONString(floodJobRunningState));
+            if (floodJobRunningState.getFloodJob().getBusinessTag().equals("ui") && floodJobRunningState.getRunningState() == FloodJobRunningState.RUNNING_STATE.RUNNING) {
                 return floodJobRunningState.getRunIp() + ":9092";
             }
         }

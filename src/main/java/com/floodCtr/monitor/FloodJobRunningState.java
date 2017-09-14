@@ -4,6 +4,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import com.floodCtr.job.FloodJob;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import java.io.Serializable;
 
@@ -22,9 +23,17 @@ public class FloodJobRunningState implements Serializable{
 
     private FloodJob floodJob;
 
-    private ContainerId containerId;
+//    private ContainerId containerId;
 
-    private NodeId nodeId;
+    private String containerIdStr;
+
+//    private NodeId nodeId;
+
+
+
+    private String nodeHOST;
+
+    private int nodePort;
 
     private String businessType;
 
@@ -47,29 +56,33 @@ public class FloodJobRunningState implements Serializable{
     }
 
     public FloodJobRunningState(String jobId,ContainerId containerId, NodeId nodeId, String businessType){
-        this.containerId = containerId;
-        this.nodeId = nodeId;
+//        this.containerId = containerId;
+//        this.nodeId = nodeId;
+
+        if(containerId!=null) {
+            this.containerIdStr = containerId.toString();
+        }
+        if(nodeId!=null) {
+            this.nodeHOST = nodeId.getHost();
+            this.nodePort = nodeId.getPort();
+        }
         this.businessType = businessType;
         this.jobId = jobId;
     }
 
-    @JSONField(serialize = false)
-    public ContainerId getContainerId() {
-        return containerId;
-    }
+//    @JSONField(serialize = false)
+//    public ContainerId getContainerId() {
+//        return containerId;
+//    }
+//
+//    public void setContainerId(ContainerId containerId) {
+//        this.containerId = containerId;
+//    }
 
-    public void setContainerId(ContainerId containerId) {
-        this.containerId = containerId;
-    }
-
-    @JSONField(serialize = false)
-    public NodeId getNodeId() {
-        return nodeId;
-    }
-
-    public void setNodeId(NodeId nodeId) {
-        this.nodeId = nodeId;
-    }
+//    @JSONField(serialize = false)
+//    public NodeId getNodeId() {
+//        return nodeId;
+//    }
 
     public String getBusinessType() {
         return businessType;
@@ -95,7 +108,31 @@ public class FloodJobRunningState implements Serializable{
         this.jobId = jobId;
     }
 
-    public enum RUNNING_STATE{
+    public String getContainerIdStr() {
+        return containerIdStr;
+    }
+
+    public void setContainerIdStr(String containerIdStr) {
+        this.containerIdStr = containerIdStr;
+    }
+
+    public String getNodeHOST() {
+        return nodeHOST;
+    }
+
+    public void setNodeHOST(String nodeHOST) {
+        this.nodeHOST = nodeHOST;
+    }
+
+    public int getNodePort() {
+        return nodePort;
+    }
+
+    public void setNodePort(int nodePort) {
+        this.nodePort = nodePort;
+    }
+
+    public  enum RUNNING_STATE{
 
         WAITING("WAITING"),RUNNING("RUNNING"),FAILD("FAILD"),RESTARTING("RESTARTING"),STOP("STOP");
 

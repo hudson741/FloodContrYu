@@ -30,6 +30,7 @@ public class MasterServer {
                                          String containerName, String dockerIp, String dockerArgs,
                                          Map<String, String> port, List<String> zkList,
                                          FloodJob.CM cm,
+                                         String appId,
                                          List<String> nimbusSeedsList,FloodJob.PRIORITY priority)
             throws TException {
         String   jobId    = UUID.randomUUID().toString();
@@ -65,6 +66,11 @@ public class MasterServer {
         logger.info("fuck dockerargs "+dockerArgs);
         floodJob.businessTag(businessTag)
                 .priority(priority);
+
+        String localDir = StringUtils.isEmpty(appId)?
+                "/home/"+hadoopUser+"/stormlog":
+                "/home/"+hadoopUser+"/stormlog/"+appId;
+
         floodJob.buildDockerCMD()
                 .imageName(imageName)
                 .containerName(containerName)
@@ -72,7 +78,8 @@ public class MasterServer {
                 .host(containerName, dockerIp)
                 .ip(dockerIp)
                 .ports(port)
-                .volume("/home/"+hadoopUser+"/stormlog","/opt/storm/logs")
+                .volume(localDir,"/opt/storm/logs")
+                .volume("/etc/localtime","/etc/localtime")
                 .dockerArgs(dockerArgs);
         floodContrJobPubProxy.publishJob(floodJob, node, priority);
     }
@@ -85,13 +92,15 @@ public class MasterServer {
          */
         final FloodContrJobPubProxy floodContrJobPubProxy = new FloodContrJobPubProxy(YarnClient.getInstance());
         final FloodContrMaster      floodContrMaster      = new FloodContrMaster(
-                                                                new StormThriftService.Processor<>(
+                                                                    new StormThriftService.Processor<>(
                                                                     new StormThriftServiceImpl(YarnClient.getInstance(),floodContrJobPubProxy)),
-                                                                9050) {
+                                                                    9050) {
             @Override
             public void initExecute() {
                 String       dockerUiIp = System.getenv("uiIp");
                 String       zk         = System.getenv("zk");
+                String       nimbusUIDockerImage = System.getenv("nimbusUIDockerImage");
+                String appId = System.getenv("appId");
                 List<String> zkList     = Lists.newArrayList();
                 String[]     zkArray    = zk.split(",");
 
@@ -122,7 +131,7 @@ public class MasterServer {
 
                         port.put("9005", "9005");
                         MasterServer.addStormComponent(floodContrJobPubProxy,
-                                                       "storm",
+                                nimbusUIDockerImage,
                                                        nodes[i] + "",
                                                        "nimbus",
                                                        "nimbus-"+System.currentTimeMillis(),
@@ -131,12 +140,12 @@ public class MasterServer {
                                                        port,
                                                        zkList,
                                                        FloodJob.CM.CMLOW,
+                                                       appId,
                                                        nimbusSeedsList,FloodJob.PRIORITY.HIGH);
                     } catch (TException e) {
                         logger.error("error ", e);
                     }
                 }
-
                 String              uiDockerArgs = "storm ui -c ui.port=9092 -c nimbus.thrift.port=9005";
                 Map<String, String> port       = new HashMap<>();
 
@@ -144,7 +153,7 @@ public class MasterServer {
 
                 try {
                     MasterServer.addStormComponent(floodContrJobPubProxy,
-                                                   "storm",
+                            nimbusUIDockerImage,
                                                    null,
                                                    "ui",
                                                    "ui-"+System.currentTimeMillis(),
@@ -153,6 +162,7 @@ public class MasterServer {
                                                    port,
                                                    zkList,
                                                    FloodJob.CM.CMLOW,
+                                                   appId,
                                                    nimbusSeedsList,FloodJob.PRIORITY.LOW);
                 } catch (TException e) {
                     logger.error("error ", e);

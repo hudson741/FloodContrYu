@@ -11,9 +11,11 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,12 +53,8 @@ public class FloodContrRunningMonitor {
                 while(true){
                     try{
                         Thread.currentThread().sleep(2000);
-
                         if(!floodJobRunningStates.isEmpty()){
-                            List<FloodJobRunningState> list = Lists.newArrayList();
-                            for(FloodJobRunningState floodJobRunningState : floodJobRunningStates.values()){
-                                list.add(floodJobRunningState);
-                            }
+                            List<FloodJobRunningState> list = getFloodJobRunningState();
 
                             Path dirDst = floodStorePath.getParent();
 
@@ -92,8 +90,8 @@ public class FloodContrRunningMonitor {
                                     try {
                                         ContainerStatus containerStatus = yarnClient.getNmClient()
                                                 .getContainerStatus(
-                                                        floodJobRunningState.getContainerId(),
-                                                        floodJobRunningState.getNodeId());
+                                                        ContainerId.fromString(floodJobRunningState.getContainerIdStr()),
+                                                        NodeId.newInstance(floodJobRunningState.getNodeHOST(),floodJobRunningState.getNodePort()));
 
                                         if (containerStatus.getState() == ContainerState.COMPLETE) {
                                             floodJobRunningState.setRunningState(

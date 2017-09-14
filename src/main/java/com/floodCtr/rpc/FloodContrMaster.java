@@ -1,5 +1,6 @@
 package com.floodCtr.rpc;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.floodCtr.FloodContrHeartBeat;
 import com.floodCtr.FloodContrSubScheduler;
@@ -145,13 +146,14 @@ public abstract class FloodContrMaster extends ThriftServer{
 
     private  boolean reload(){
         String appId = System.getenv("appId");
+        LOG.info("reload");
         YarnConfiguration yarnConf   = new YarnConfiguration();
         FileSystem fs;
         try {
             fs = FileSystem.get(yarnConf);
             Path floodStorePath = new Path(fs.getHomeDirectory(),
                     "store" + Path.SEPARATOR +appId+Path.SEPARATOR+ "flood.txt");
-            LOG.info("reload  "+fs.getHomeDirectory()+"store" + Path.SEPARATOR +appId+Path.SEPARATOR+ "flood.txt");
+            LOG.info("reload  "+fs.getHomeDirectory()+Path.SEPARATOR+"store" + Path.SEPARATOR +appId+Path.SEPARATOR+ "flood.txt");
             if(fs.exists(floodStorePath)) {
                 FSDataInputStream fsDataInputStream = fs.open(floodStorePath);
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fsDataInputStream, "UTF-8"));
@@ -165,8 +167,12 @@ public abstract class FloodContrMaster extends ThriftServer{
                 if(StringUtils.isEmpty(json)){
                     return false;
                 }
-                List<FloodJobRunningState> list = JSONObject.parseObject(json,List.class);
+
+                LOG.info("reload  "+json);
+
+                List<FloodJobRunningState> list = JSONArray.parseArray(json,FloodJobRunningState.class);
                 for(FloodJobRunningState f:list){
+                    LOG.info("reload put "+JSONObject.toJSONString(f));
                     FloodContrRunningMonitor.floodJobRunningStates.put(f.getJobId(),f);
                 }
                 return true;
@@ -174,7 +180,7 @@ public abstract class FloodContrMaster extends ThriftServer{
             }
 
 
-        } catch (IOException e) {
+        } catch (Throwable e) {
             LOG.error("error ",e);
         }
         return false;
@@ -192,6 +198,14 @@ public abstract class FloodContrMaster extends ThriftServer{
         LOG.info("Max Capability " + resp.getMaximumResourceCapability());
 
         return resp;
+    }
+
+    public static void main(String[] args){
+        String json = "[{\"businessType\":\"storm-1\",\"floodJob\":{\"businessTag\":\"nimbus\",\"cpu\":1,\"dockerCMD\":{\"containerName\":\"nimbus-1505286926022\",\"dockerArgs\":\"storm  nimbus  -c nimbus.thrift.port=9005 -c storm.zookeeper.servers=[\\\\\\\"10.186.58.13\\\\\\\"] -c nimbus.seeds=[\\\\\\\"192.168.10.3\\\\\\\",\\\\\\\"192.168.10.4\\\\\\\"]\",\"host\":{\"nimbus-1505286926022\":\"192.168.10.3\"},\"hostName\":\"nimbus-1505286926022\",\"imageName\":\"1187655234/storm-1.1.0-1c2g:1.0\",\"ip\":\"192.168.10.3\",\"port\":{\"9005\":\"9005\"},\"volume\":{\"/home/hadoop/stormlog\":\"/opt/storm/logs\"}},\"jobId\":\"19d3886c-6b15-4a62-9dc8-cda67d779ee5\",\"launch_type\":\"NEW\",\"memory\":512,\"netUrl\":\"overlay\",\"nodeBind\":\"zhangc4\",\"priority\":\"HIGH\"},\"jobId\":\"19d3886c-6b15-4a62-9dc8-cda67d779ee5\",\"runIp\":\"zhangc4\",\"runningState\":\"RUNNING\"},{\"businessType\":\"storm-1\",\"floodJob\":{\"businessTag\":\"ui\",\"cpu\":1,\"dockerCMD\":{\"containerName\":\"ui-1505286926104\",\"dockerArgs\":\"storm ui -c ui.port=9092 -c nimbus.thrift.port=9005 -c storm.zookeeper.servers=[\\\\\\\"10.186.58.13\\\\\\\"] -c nimbus.seeds=[\\\\\\\"192.168.10.3\\\\\\\",\\\\\\\"192.168.10.4\\\\\\\"]\",\"host\":{\"ui-1505286926104\":\"192.168.10.5\"},\"hostName\":\"ui-1505286926104\",\"imageName\":\"1187655234/storm-1.1.0-1c2g:1.0\",\"ip\":\"192.168.10.5\",\"port\":{\"9092\":\"9092\"},\"volume\":{\"/home/hadoop/stormlog\":\"/opt/storm/logs\"}},\"jobId\":\"1a912160-430a-4267-b88a-f367c7875016\",\"launch_type\":\"NEW\",\"memory\":512,\"netUrl\":\"overlay\",\"priority\":\"LOW\"},\"jobId\":\"1a912160-430a-4267-b88a-f367c7875016\",\"runIp\":\"zhangc5\",\"runningState\":\"RUNNING\"},{\"businessType\":\"storm-1\",\"floodJob\":{\"businessTag\":\"nimbus\",\"cpu\":1,\"dockerCMD\":{\"containerName\":\"nimbus-1505286926103\",\"dockerArgs\":\"storm  nimbus  -c nimbus.thrift.port=9005 -c storm.zookeeper.servers=[\\\\\\\"10.186.58.13\\\\\\\"] -c nimbus.seeds=[\\\\\\\"192.168.10.3\\\\\\\",\\\\\\\"192.168.10.4\\\\\\\"]\",\"host\":{\"nimbus-1505286926103\":\"192.168.10.4\"},\"hostName\":\"nimbus-1505286926103\",\"imageName\":\"1187655234/storm-1.1.0-1c2g:1.0\",\"ip\":\"192.168.10.4\",\"port\":{\"9005\":\"9005\"},\"volume\":{\"/home/hadoop/stormlog\":\"/opt/storm/logs\"}},\"jobId\":\"57096130-f711-44b8-83b8-683c4d3b37c1\",\"launch_type\":\"NEW\",\"memory\":512,\"netUrl\":\"overlay\",\"nodeBind\":\"zhangc3\",\"priority\":\"HIGH\"},\"jobId\":\"57096130-f711-44b8-83b8-683c4d3b37c1\",\"runIp\":\"zhangc3\",\"runningState\":\"RUNNING\"},{\"businessType\":\"storm-1\",\"floodJob\":{\"businessTag\":\"supervisor\",\"cpu\":2,\"dockerCMD\":{\"containerName\":\"supervisor-1505287004413\",\"dockerArgs\":\"storm supervisor -c nimbus.thrift.port=9005 -c ui.port=9092 -c storm.zookeeper.servers=[\\\\\\\"10.186.58.13\\\\\\\"] -c nimbus.seeds=[\\\\\\\"192.168.10.3\\\\\\\",\\\\\\\"192.168.10.4\\\\\\\"]\",\"host\":{\"supervisor-1505287004413\":\"192.168.10.7\"},\"hostName\":\"supervisor-1505287004413\",\"imageName\":\"1187655234/storm-1.1.0-4c4g:1.0\",\"ip\":\"192.168.10.7\",\"port\":{},\"volume\":{\"/home/hadoop/stormlog\":\"/opt/storm/logs\"}},\"jobId\":\"b5ac2e5c-bc3e-4372-af97-e12c71e605e3\",\"launch_type\":\"NEW\",\"memory\":4096,\"netUrl\":\"overlay\",\"priority\":\"HIGH\"},\"jobId\":\"b5ac2e5c-bc3e-4372-af97-e12c71e605e3\",\"runIp\":\"zhangc1\",\"runningState\":\"RUNNING\"}]";
+        List<FloodJobRunningState> list = JSONObject.parseObject(json,List.class);
+        for(FloodJobRunningState f:list){
+            FloodContrRunningMonitor.floodJobRunningStates.put(f.getJobId(),f);
+        }
     }
 
 }

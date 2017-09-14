@@ -116,8 +116,9 @@ public class FloodContrSubScheduler {
                                 if (result > 0) {
                                     LOG.info("floodinfo job is submit sucees with id " + floodJob.getJobId());
                                     JobRegisterPubTable.removeJob(floodJob.getJobId());
-                                    floodJobRunningState.setContainerId(container.getId());
-                                    floodJobRunningState.setNodeId(container.getNodeId());
+                                    floodJobRunningState.setContainerIdStr(container.getId().toString());
+                                    floodJobRunningState.setNodeHOST(container.getNodeId().getHost());
+                                    floodJobRunningState.setNodePort(container.getNodeId().getPort());
                                     floodJobRunningState.setRunIp(container.getNodeId().getHost());
                                     floodJobRunningState.setRunningState(FloodJobRunningState.RUNNING_STATE.RUNNING);
                                     break;
