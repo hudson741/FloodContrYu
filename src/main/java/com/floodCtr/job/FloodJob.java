@@ -63,7 +63,7 @@ public class FloodJob implements Serializable {
     }
 
     public enum CM {
-        CMLOW(1, 1024), CMLOW2(1,1024),CMNOMAL(1,2048), CMH1(2, 4096), CMH2(4, 4096);
+        CMLOW(1, 1024), CMLOW2(1, 1024), CMNOMAL(1, 2048), CMH1(2, 4096), CMH2(4, 4096);
 
         private int cpu;
         private int memory;
@@ -77,7 +77,9 @@ public class FloodJob implements Serializable {
             if (StringUtils.isEmpty(cm)) {
                 return CMNOMAL;
             }
+
             int code = 1;
+
             try {
                 code = Integer.parseInt(cm);
             } catch (Throwable e) {}
@@ -86,13 +88,13 @@ public class FloodJob implements Serializable {
                 return CMLOW2;
             } else if (code == 1) {
                 return CMNOMAL;
-            } else if(code == 2) {
+            } else if (code == 2) {
                 return CMH1;
-            }else if(code == 3){
+            } else if (code == 3) {
                 return CMH2;
-            }else if (code == 4){
+            } else if (code == 4) {
                 return CMLOW;
-            }else{
+            } else {
                 return CMNOMAL;
             }
         }
@@ -255,25 +257,49 @@ public class FloodJob implements Serializable {
         return businessTag;
     }
 
+    public void setBusinessTag(String businessTag) {
+        this.businessTag = businessTag;
+    }
+
     public int getCpu() {
         return cpu;
+    }
+
+    public void setCpu(int cpu) {
+        this.cpu = cpu;
     }
 
     public DockerCMD getDockerCMD() {
         return dockerCMD;
     }
 
+    public void setDockerCMD(DockerCMD dockerCMD) {
+        this.dockerCMD = dockerCMD;
+    }
+
     public String getJobId() {
         return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
     }
 
     public LAUNCH_TYPE getLaunch_type() {
         return launch_type;
     }
 
+    public void setLaunch_type(LAUNCH_TYPE launch_type) {
+        this.launch_type = launch_type;
+    }
+
     @JSONField(serialize = false)
     public Map<String, LocalResource> getLocalResources() {
         return localResources;
+    }
+
+    public void setLocalResources(Map<String, LocalResource> localResources) {
+        this.localResources = localResources;
     }
 
     public int getMemory() {
@@ -288,8 +314,16 @@ public class FloodJob implements Serializable {
         return netUrl;
     }
 
+    public void setNetUrl(String netUrl) {
+        this.netUrl = netUrl;
+    }
+
     public String getNodeBind() {
         return nodeBind;
+    }
+
+    public void setNodeBind(String nodeBind) {
+        this.nodeBind = nodeBind;
     }
 
     public PRIORITY getPriority() {
@@ -298,38 +332,6 @@ public class FloodJob implements Serializable {
 
     public void setPriority(PRIORITY priority) {
         this.priority = priority;
-    }
-
-    public void setLaunch_type(LAUNCH_TYPE launch_type) {
-        this.launch_type = launch_type;
-    }
-
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
-    }
-
-    public void setCpu(int cpu) {
-        this.cpu = cpu;
-    }
-
-    public void setNetUrl(String netUrl) {
-        this.netUrl = netUrl;
-    }
-
-    public void setDockerCMD(DockerCMD dockerCMD) {
-        this.dockerCMD = dockerCMD;
-    }
-
-    public void setNodeBind(String nodeBind) {
-        this.nodeBind = nodeBind;
-    }
-
-    public void setBusinessTag(String businessTag) {
-        this.businessTag = businessTag;
-    }
-
-    public void setLocalResources(Map<String, LocalResource> localResources) {
-        this.localResources = localResources;
     }
 
     /**
@@ -433,64 +435,64 @@ public class FloodJob implements Serializable {
             return containerName;
         }
 
-        public String getDockerArgs() {
-            return dockerArgs;
-        }
-
-        public Map<String, String> getHost() {
-            return host;
-        }
-
-        public String getHostName() {
-            return hostName;
-        }
-
-        public String getImageName() {
-            return imageName;
-        }
-
-        public String getIp() {
-            return ip;
-        }
-
-        public Map<String, String> getPort() {
-            return port;
-        }
-
-        public Map<String, String> getVolume() {
-            return volume;
-        }
-
-        public void setHost(Map<String, String> host) {
-            this.host = host;
-        }
-
-        public void setPort(Map<String, String> port) {
-            this.port = port;
-        }
-
-        public void setVolume(Map<String, String> volume) {
-            this.volume = volume;
-        }
-
-        public void setImageName(String imageName) {
-            this.imageName = imageName;
-        }
-
         public void setContainerName(String containerName) {
             this.containerName = containerName;
+        }
+
+        public String getDockerArgs() {
+            return dockerArgs;
         }
 
         public void setDockerArgs(String dockerArgs) {
             this.dockerArgs = dockerArgs;
         }
 
-        public void setIp(String ip) {
-            this.ip = ip;
+        public Map<String, String> getHost() {
+            return host;
+        }
+
+        public void setHost(Map<String, String> host) {
+            this.host = host;
+        }
+
+        public String getHostName() {
+            return hostName;
         }
 
         public void setHostName(String hostName) {
             this.hostName = hostName;
+        }
+
+        public String getImageName() {
+            return imageName;
+        }
+
+        public void setImageName(String imageName) {
+            this.imageName = imageName;
+        }
+
+        public String getIp() {
+            return ip;
+        }
+
+        public void setIp(String ip) {
+            this.ip = ip;
+        }
+
+        public Map<String, String> getPort() {
+            return port;
+        }
+
+        public void setPort(Map<String, String> port) {
+            this.port = port;
+        }
+
+        public Map<String, String> getVolume() {
+            return volume;
+        }
+
+        public void setVolume(Map<String, String> volume) {
+            this.volume = volume;
         }
     }
 }

@@ -1,7 +1,7 @@
 package com.floodCtr.rpc;
 
-
 import java.io.IOException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,19 +39,69 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
     }
 
     @Override
+    public void addDockerComponent(String imageName, String containerName, String runIp, String dockerIp,
+                                   String businessTag, String priority, String dockerArgs, String netUrl, String cm,
+                                   String appId, Map<String, String> host, Map<String, String> port)
+            throws TException {
+        String      jobId      = UUID.randomUUID().toString();
+        FloodJob.CM dockerCM   = FloodJob.CM.getCM(cm);
+        FloodJob    floodJob   = new FloodJob(jobId, dockerCM);
+        String      netUrl1    = System.getenv("netUrl");
+        String      hadoopUser = System.getenv("hadoopUser");
+
+        logger.info("add docker with args " + dockerArgs);
+        logger.info("netUrl : " + netUrl1);
+        floodJob.netUrl((netUrl == null)
+                        ? netUrl1
+                        : netUrl);
+
+        if (StringUtils.isNotEmpty(businessTag)) {
+            floodJob.businessTag(businessTag);
+        }
+
+        FloodJob.PRIORITY priority1 = FloodJob.PRIORITY.getByCodeStr(priority);
+
+        floodJob.priority(priority1);
+
+        String applicationId = StringUtils.isEmpty(appId)
+                               ? System.getenv("appId")
+                               : appId;
+        String localDir      = StringUtils.isEmpty(applicationId)
+                               ? "/home/" + hadoopUser + "/stormlog"
+                               : "/home/" + hadoopUser + "/stormlog/" + applicationId;
+
+        floodJob.buildDockerCMD()
+                .imageName(imageName)
+                .containerName(containerName)
+                .hostName(containerName)
+                .host(containerName, dockerIp)
+                .ip(dockerIp)
+                .hosts(host)
+                .volume(localDir, "/opt/storm/logs")
+                .volume("/etc/localtime", "/etc/localtime")
+                .ports(port)
+                .dockerArgs(dockerArgs);
+        floodContrJobPubProxy.publishJob(floodJob, runIp, priority1);
+    }
+
+    @Override
     public String killApplication(String appId) throws TException {
-
         try {
-
-            for(FloodJobRunningState floodJobRunningState:  FloodContrRunningMonitor.floodJobRunningStates.values()){
+            for (FloodJobRunningState floodJobRunningState : FloodContrRunningMonitor.floodJobRunningStates.values()) {
                 yarnClient.stopContainer(floodJobRunningState);
             }
+
             Thread.currentThread().sleep(1000);
             yarnClient.stop();
+
             List<ApplicationReport> list = yarnClient.getYarnClient1().getApplications();
-            for(ApplicationReport applicationReport : list){
-                logger.info("fuck applicationReport "+applicationReport.getApplicationId()+" "+applicationReport.getApplicationType()+" "+applicationReport.getYarnApplicationState().toString());
-                if(applicationReport.getApplicationId().toString().equals(appId)){
+
+            for (ApplicationReport applicationReport : list) {
+                logger.info("fuck applicationReport " + applicationReport.getApplicationId() + " "
+                            + applicationReport.getApplicationType() + " "
+                            + applicationReport.getYarnApplicationState().toString());
+
+                if (applicationReport.getApplicationId().toString().equals(appId)) {
                     yarnClient.getYarnClient1().killApplication(applicationReport.getApplicationId());
                 }
             }
@@ -98,47 +148,8 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
 
     @Override
     public String getAllDockerJob() throws TException {
-        logger.info("json "+JSONObject.toJSONString(FloodContrRunningMonitor.getFloodJobRunningState()));
+        logger.info("json " + JSONObject.toJSONString(FloodContrRunningMonitor.getFloodJobRunningState()));
+
         return JSONObject.toJSONString(FloodContrRunningMonitor.getFloodJobRunningState());
-    }
-
-    @Override
-    public void addDockerComponent(String imageName, String containerName, String runIp, String dockerIp, String businessTag, String priority, String dockerArgs, String netUrl, String cm,String appId,Map<String, String> host, Map<String, String> port) throws TException {
-        String jobId = UUID.randomUUID().toString();
-
-        FloodJob.CM dockerCM = FloodJob.CM.getCM(cm);
-
-        FloodJob floodJob = new FloodJob(jobId, dockerCM);
-        String   netUrl1  = System.getenv("netUrl");
-
-        String hadoopUser = System.getenv("hadoopUser");
-
-        logger.info("add docker with args "+dockerArgs);
-
-        logger.info("netUrl : " + netUrl1);
-        floodJob.netUrl(netUrl ==null?netUrl1:netUrl);
-        if(StringUtils.isNotEmpty(businessTag)){
-            floodJob.businessTag(businessTag);
-        }
-        FloodJob.PRIORITY priority1 = FloodJob.PRIORITY.getByCodeStr(priority);
-        floodJob.priority(priority1);
-
-        String applicationId =StringUtils.isEmpty(appId)?System.getenv("appId"):appId;
-
-        String localDir = StringUtils.isEmpty(applicationId)?
-                "/home/"+hadoopUser+"/stormlog":
-                "/home/"+hadoopUser+"/stormlog/"+applicationId;
-        floodJob.buildDockerCMD()
-                .imageName(imageName)
-                .containerName(containerName)
-                .hostName(containerName)
-                .host(containerName, dockerIp)
-                .ip(dockerIp)
-                .hosts(host)
-                .volume(localDir,"/opt/storm/logs")
-                .volume("/etc/localtime","/etc/localtime")
-                .ports(port)
-                .dockerArgs(dockerArgs);
-        floodContrJobPubProxy.publishJob(floodJob,runIp, priority1);
     }
 }

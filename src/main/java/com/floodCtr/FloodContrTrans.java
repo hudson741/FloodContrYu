@@ -78,27 +78,6 @@ public class FloodContrTrans {
         return "--memory " + memory + "MB";
     }
 
-    private static String buildVolume(Map<String,String> map) {
-        if(MapUtils.isEmpty(map)){
-            return "";
-        }
-
-        List<String> addVolume = Lists.newArrayList();
-
-        for(String localDir:map.keySet()){
-            String dockerDir = map.get(localDir);
-            addVolume.add("-v "+localDir+":"+dockerDir);
-        }
-
-        StringBuilder command = new StringBuilder();
-
-        for (CharSequence str : addVolume) {
-            command.append(str).append(" ");
-        }
-
-        return command.toString();
-    }
-
     private static String buildPortM(Map<String, String> portMap) {
         if (MapUtils.isEmpty(portMap)) {
             return "";
@@ -115,6 +94,28 @@ public class FloodContrTrans {
         StringBuilder command = new StringBuilder();
 
         for (CharSequence str : addPort) {
+            command.append(str).append(" ");
+        }
+
+        return command.toString();
+    }
+
+    private static String buildVolume(Map<String, String> map) {
+        if (MapUtils.isEmpty(map)) {
+            return "";
+        }
+
+        List<String> addVolume = Lists.newArrayList();
+
+        for (String localDir : map.keySet()) {
+            String dockerDir = map.get(localDir);
+
+            addVolume.add("-v " + localDir + ":" + dockerDir);
+        }
+
+        StringBuilder command = new StringBuilder();
+
+        for (CharSequence str : addVolume) {
             command.append(str).append(" ");
         }
 
@@ -154,7 +155,8 @@ public class FloodContrTrans {
         } else {
             Map<String, String> hostMap = dockerCMD.getHost();
             Map<String, String> portM   = dockerCMD.getPort();
-            Map<String,String>  volume   =dockerCMD.getVolume();
+            Map<String, String> volume  = dockerCMD.getVolume();
+
             args.add(buildDockerContainerName(dockerCMD.getContainerName()));
             args.add(buildDockerHostName(dockerCMD.getHostName()));
             args.add(buildHostP(hostMap));

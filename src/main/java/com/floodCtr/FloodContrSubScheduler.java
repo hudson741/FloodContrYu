@@ -1,6 +1,7 @@
 package com.floodCtr;
 
 import java.io.IOException;
+
 import java.net.URISyntaxException;
 
 import java.util.HashMap;
@@ -53,12 +54,13 @@ public class FloodContrSubScheduler {
                 while (true) {
                     try {
                         Thread.currentThread().sleep(1000);
-//                        LOG.info("floodinfo scheduleSubJob begin ...");
+
+//                      LOG.info("floodinfo scheduleSubJob begin ...");
 
                         Container      container = FloodContrContainerPool.containerPool.take();
                         List<FloodJob> floodJobs = JobRegisterPubTable.getAllFloodContrJob();
 
-//                        LOG.info("flood size is " + floodJobs.size());
+//                      LOG.info("flood size is " + floodJobs.size());
                         LOG.info("priority with container " + container.getNodeId().getHost() + "  "
                                  + container.getPriority().getPriority());
 
@@ -121,6 +123,7 @@ public class FloodContrSubScheduler {
                                     floodJobRunningState.setNodePort(container.getNodeId().getPort());
                                     floodJobRunningState.setRunIp(container.getNodeId().getHost());
                                     floodJobRunningState.setRunningState(FloodJobRunningState.RUNNING_STATE.RUNNING);
+
                                     break;
                                 } else {
                                     LOG.warn("任务提交失败。。。。" + floodJob.toString());
@@ -149,43 +152,41 @@ public class FloodContrSubScheduler {
      * @param floodContrJob
      * @param container
      */
-    private int subFloodCtrJobToYarn(FloodJob floodContrJob, Container container) throws HttpException, URISyntaxException {
+    private int subFloodCtrJobToYarn(FloodJob floodContrJob, Container container)
+            throws HttpException, URISyntaxException {
         LOG.info("submit a job " + floodContrJob.getJobId());
 
-
         try {
-
-            List<String> yarnShell = FloodContrTrans.floodJobToYarnCmd(floodContrJob);
-
-
+            List<String>               yarnShell      = FloodContrTrans.floodJobToYarnCmd(floodContrJob);
             Map<String, LocalResource> localResources = floodContrJob.getLocalResources();
 
             if (localResources == null) {
                 localResources = new HashMap<>();
             }
 
-//            String fileSystem = System.getenv("fs");
+//          String fileSystem = System.getenv("fs");
             LocalResource localResource = null;
 
-//            if(fileSystem.equals("ftp")){
-//                localResource = writeReturnFTPLocalResources(yarnShell,container.getId()+"");
-//            }else{
+//          if(fileSystem.equals("ftp")){
+//              localResource = writeReturnFTPLocalResources(yarnShell,container.getId()+"");
+//          }else{
             FileSystem fs = FileSystem.get(new YarnConfiguration());
-            localResource = writeYarnShell2HDFS(fs,yarnShell,container.getId()+"");
-//            }
 
+            localResource = writeYarnShell2HDFS(fs, yarnShell, container.getId() + "");
+
+//          }
             localResources.put(YARN_EXECUTE_FILE, localResource);
             floodContrJob.localResources(localResources);
             LOG.info("gona start docker  with" + container.getId() + "  " + container.getNodeId());
 
             StringBuilder yarnCommands = new StringBuilder();
-            String hadoopUser = System.getenv("hadoopUser");
-            String hadoopUserPd = System.getenv("hadoopUserPd");
+            String        hadoopUser   = System.getenv("hadoopUser");
+            String        hadoopUserPd = System.getenv("hadoopUserPd");
 
-            yarnCommands.append("echo '"+hadoopUserPd+"' |sudo -S  sh ")
+            yarnCommands.append("echo '" + hadoopUserPd + "' |sudo -S  sh ")
                         .append(YARN_EXECUTE_FILE)
-                        .append(" 1>/home/"+hadoopUser+"/" + container.getId() + "_stdout ")
-                        .append(" 2>/home/"+hadoopUser+"/" + container.getId() + "_stderr ");
+                        .append(" 1>/home/" + hadoopUser + "/" + container.getId() + "_stdout ")
+                        .append(" 2>/home/" + hadoopUser + "/" + container.getId() + "_stderr ");
 
             return yarnClient.startDockerContainer(container,
                                                    floodContrJob.getLocalResources(),
@@ -197,7 +198,8 @@ public class FloodContrSubScheduler {
         return 0;
     }
 
-    private LocalResource writeYarnShell2HDFS(FileSystem fs, List<String> yarnShell, String childDir) throws IOException {
+    private LocalResource writeYarnShell2HDFS(FileSystem fs, List<String> yarnShell, String childDir)
+            throws IOException {
         Path exePath = new Path(fs.getHomeDirectory(),
                                 "dockershell" + Path.SEPARATOR + childDir + Path.SEPARATOR + YARN_EXECUTE_FILE);
         Path dirDst = exePath.getParent();
@@ -215,43 +217,42 @@ public class FloodContrSubScheduler {
         out.close();
 
         return Util.newYarnAppResource(fs, exePath, LocalResourceType.FILE, LocalResourceVisibility.PUBLIC);
-
     }
 
-//    private LocalResource writeReturnFTPLocalResources( List<String> yarnShell, String childDir)
-//            throws IOException, HttpException, URISyntaxException {
-//        StringBuilder s = new StringBuilder();
+//  private LocalResource writeReturnFTPLocalResources( List<String> yarnShell, String childDir)
+//          throws IOException, HttpException, URISyntaxException {
+//      StringBuilder s = new StringBuilder();
 //
-//        for (String shell : yarnShell) {
-//            s.append(shell).append("\n");
-//        }
+//      for (String shell : yarnShell) {
+//          s.append(shell).append("\n");
+//      }
 //
-//        String ftpServer = System.getenv("ftpAddr");
+//      String ftpServer = System.getenv("ftpAddr");
 //
-//        String ftpPort = System.getenv("ftpPort");
+//      String ftpPort = System.getenv("ftpPort");
 //
-//        String ftpUserName = System.getenv("ftpUserName");
+//      String ftpUserName = System.getenv("ftpUserName");
 //
-//        String ftpPassword = System.getenv("ftpPassword");
+//      String ftpPassword = System.getenv("ftpPassword");
 //
-//        FtpUtil ftpUtil = new FtpUtil(ftpServer,ftpPort,ftpUserName,ftpPassword);
+//      FtpUtil ftpUtil = new FtpUtil(ftpServer,ftpPort,ftpUserName,ftpPassword);
 //
-//        ftpUtil.writes("dockershell"+Path.SEPARATOR+childDir,YARN_EXECUTE_FILE,new ByteArrayInputStream(s.toString().getBytes()));
+//      ftpUtil.writes("dockershell"+Path.SEPARATOR+childDir,YARN_EXECUTE_FILE,new ByteArrayInputStream(s.toString().getBytes()));
 //
-//        long size = ftpUtil.getFileSize(Path.SEPARATOR+"dockershell"+Path.SEPARATOR+childDir,YARN_EXECUTE_FILE);
+//      long size = ftpUtil.getFileSize(Path.SEPARATOR+"dockershell"+Path.SEPARATOR+childDir,YARN_EXECUTE_FILE);
 //
-//        ftpUtil.disconnect();
+//      ftpUtil.disconnect();
 //
-//        long          timeStamp     = ftpUtil.getFtpFileTimeStamp("dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE);
-//        LOG.info(" user ftp writes "+ftpUtil.getRemoteFtpServerAddress()+Path.SEPARATOR +"dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE);
-//        LocalResource localResource = LocalResource.newInstance(
-//                org.apache.hadoop.yarn.api.records.URL.fromURI(
-//                        new URI(ftpUtil.getRemoteFtpServerAddress()+Path.SEPARATOR +"dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE)),
-//                LocalResourceType.FILE,
-//                LocalResourceVisibility.APPLICATION,
-//                size,
-//                timeStamp);
+//      long          timeStamp     = ftpUtil.getFtpFileTimeStamp("dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE);
+//      LOG.info(" user ftp writes "+ftpUtil.getRemoteFtpServerAddress()+Path.SEPARATOR +"dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE);
+//      LocalResource localResource = LocalResource.newInstance(
+//              org.apache.hadoop.yarn.api.records.URL.fromURI(
+//                      new URI(ftpUtil.getRemoteFtpServerAddress()+Path.SEPARATOR +"dockershell"+Path.SEPARATOR+childDir+Path.SEPARATOR+YARN_EXECUTE_FILE)),
+//              LocalResourceType.FILE,
+//              LocalResourceVisibility.APPLICATION,
+//              size,
+//              timeStamp);
 //
-//        return localResource;
-//    }
+//      return localResource;
+//  }
 }
