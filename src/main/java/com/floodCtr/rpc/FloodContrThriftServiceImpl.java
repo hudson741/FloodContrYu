@@ -147,6 +147,20 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
     }
 
     @Override
+    public String removeDocker(String jobId) throws TException {
+        FloodJobRunningState floodJobRunningState = FloodContrRunningMonitor.floodJobRunningStates.get(jobId);
+        if(floodJobRunningState == null){
+            return "任务不存在";
+        }else if(floodJobRunningState.getRunningState() != FloodJobRunningState.RUNNING_STATE.FAILD &&
+                 floodJobRunningState.getRunningState() != FloodJobRunningState.RUNNING_STATE.STOP){
+            return "只能删除处于停止，或失败的docker任务";
+        }else{
+            FloodContrRunningMonitor.floodJobRunningStates.remove(jobId);
+            return "已删除";
+        }
+    }
+
+    @Override
     public String getAllDockerJob() throws TException {
         logger.info("json " + JSONObject.toJSONString(FloodContrRunningMonitor.getFloodJobRunningState()));
 
