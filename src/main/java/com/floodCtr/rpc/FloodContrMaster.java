@@ -86,7 +86,8 @@ public abstract class FloodContrMaster extends ThriftServer {
             zkList.add(zkHost);
         }
 
-        client = CuratorFrameworkFactory.newClient(zkList.get(0) + ":2181", new ExponentialBackoffRetry(1000, 3));
+        String stormZkPort = StringUtils.isEmpty(System.getenv("stormZkPort"))?"2181":System.getenv("stormZkPort");
+        client = CuratorFrameworkFactory.newClient(zkList.get(0) + ":"+stormZkPort, new ExponentialBackoffRetry(1000, 3));
         client.start();
     }
 

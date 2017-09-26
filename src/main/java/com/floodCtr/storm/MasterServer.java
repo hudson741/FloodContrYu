@@ -118,6 +118,9 @@ public class MasterServer {
                 String       drpc                = System.getenv("drpc");
                 String       nimbusUIDockerImage = System.getenv("nimbusUIDockerImage");
                 String       appId               = System.getenv("appId");
+                int       nimbusPort             = StringUtils.isEmpty(System.getenv("nimbusPort"))?9005:Integer.parseInt(System.getenv("nimbusPort"));
+                int       uiPort                 = StringUtils.isEmpty(System.getenv("uiPort"))?9092:Integer.parseInt(System.getenv("uiPort"));
+                int       drpcPort               = StringUtils.isEmpty(System.getenv("drpcPort"))?3772:Integer.parseInt(System.getenv("drpcPort"));
                 List<String> zkList              = Lists.newArrayList();
                 String[]     zkArray             = zk.split(",");
 
@@ -153,13 +156,13 @@ public class MasterServer {
                 /**
                  * 启动drpc节点
                  */
-                String drpcDockerArgs = "storm drpc -c drpc.port=3772";
+                String drpcDockerArgs = "storm drpc -c drpc.port="+drpcPort;
 
                 for (int i = drpcServersList.size() - 1; i >= 0; i--) {
                     try {
                         Map<String, String> port = new HashMap<>();
 
-                        port.put("3772", "3772");
+                        port.put(drpcPort+"", drpcPort+"");
                         MasterServer.addStormComponent(floodContrJobPubProxy,
                                                        nimbusUIDockerImage,
                                                        nodes[i] + "",
@@ -182,13 +185,13 @@ public class MasterServer {
                 /**
                  * 启动 numbus节点
                  */
-                String nimbusDockerArgs = "storm  nimbus  -c nimbus.thrift.port=9005";
+                String nimbusDockerArgs = "storm  nimbus  -c nimbus.thrift.port="+nimbusPort;
 
                 for (int i = 0; i < nimbusSeedsList.size(); i++) {
                     try {
                         Map<String, String> port = new HashMap<>();
 
-                        port.put("9005", "9005");
+                        port.put(nimbusPort+"", nimbusPort+"");
                         MasterServer.addStormComponent(floodContrJobPubProxy,
                                                        nimbusUIDockerImage,
                                                        nodes[i] + "",
@@ -211,10 +214,10 @@ public class MasterServer {
                 /**
                  * 启动ui节点
                  */
-                String              uiDockerArgs = "storm ui -c ui.port=9092 -c nimbus.thrift.port=9005";
+                String              uiDockerArgs = "storm ui -c ui.port="+uiPort+" -c nimbus.thrift.port="+nimbusPort;
                 Map<String, String> port         = new HashMap<>();
 
-                port.put("9092", "9092");
+                port.put(uiPort+"", uiPort+"");
 
                 try {
                     MasterServer.addStormComponent(floodContrJobPubProxy,
