@@ -72,6 +72,7 @@ public class StormThriftServiceImpl extends FloodContrThriftServiceImpl implemen
 
     @Override
     public String getStormUi() throws TException {
+        long now = System.currentTimeMillis();
         List<FloodJobRunningState> list = FloodContrRunningMonitor.getFloodJobRunningState();
 
         if (CollectionUtils.isEmpty(list)) {
@@ -86,6 +87,9 @@ public class StormThriftServiceImpl extends FloodContrThriftServiceImpl implemen
                 return floodJobRunningState.getRunIp() + ":9092";
             }
         }
+        long end = System.currentTimeMillis();
+
+        System.out.println("get stormUI cost "+(end-now)+" Millis");
 
         return null;
     }

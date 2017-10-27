@@ -79,6 +79,7 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
                 .hosts(host)
                 .volume(localDir, "/opt/storm/logs")
                 .volume("/etc/localtime", "/etc/localtime")
+                .volume("/home/hadoop/expand/storm.yaml","/opt/storm/conf/storm.yaml")
                 .ports(port)
                 .dockerArgs(dockerArgs);
         floodContrJobPubProxy.publishJob(floodJob, runIp, priority1);
@@ -97,7 +98,7 @@ public class FloodContrThriftServiceImpl implements FloodContrThriftService.Ifac
             List<ApplicationReport> list = yarnClient.getYarnClient1().getApplications();
 
             for (ApplicationReport applicationReport : list) {
-                logger.info("fuck applicationReport " + applicationReport.getApplicationId() + " "
+                logger.info(" applicationReport " + applicationReport.getApplicationId() + " "
                             + applicationReport.getApplicationType() + " "
                             + applicationReport.getYarnApplicationState().toString());
 

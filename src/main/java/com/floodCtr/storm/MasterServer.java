@@ -183,18 +183,19 @@ public class MasterServer {
                 }
 
                 /**
-                 * 启动 numbus节点
+                 * 启动 nimbus节点
                  */
                 String nimbusDockerArgs = "storm  nimbus  -c nimbus.thrift.port="+nimbusPort;
 
                 for (int i = 0; i < nimbusSeedsList.size(); i++) {
                     try {
+                        int j = nodeList.size()-1-i;
                         Map<String, String> port = new HashMap<>();
 
                         port.put(nimbusPort+"", nimbusPort+"");
                         MasterServer.addStormComponent(floodContrJobPubProxy,
                                                        nimbusUIDockerImage,
-                                                       nodes[i] + "",
+                                                       nodes[j] + "",
                                                        "nimbus",
                                                        "nimbus-" + System.currentTimeMillis(),
                                                        nimbusSeedsList.get(i),
@@ -219,6 +220,7 @@ public class MasterServer {
 
                 port.put(uiPort+"", uiPort+"");
 
+                //测试
                 try {
                     MasterServer.addStormComponent(floodContrJobPubProxy,
                                                    nimbusUIDockerImage,
